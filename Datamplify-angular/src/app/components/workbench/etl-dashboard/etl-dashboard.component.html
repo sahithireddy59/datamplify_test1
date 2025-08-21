@@ -1,0 +1,80 @@
+<div class="page-wrap mt-5">
+  <div class="header">
+    <div class="title">
+      <h1>Dashboard Overview</h1>
+      <p>Monitor your ETL pipelines and data flows</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn ghost">Refresh</button>
+      <button class="btn primary">+ New Pipeline</button>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div *ngFor="let k of kpis" class="kpi-card glass {{k.accent}}">
+      <div class="kpi-left">
+        <div class="kpi-title">{{ k.title }}</div>
+        <div class="kpi-value">{{ k.value }}</div>
+        <div class="kpi-delta">{{ k.delta }}</div>
+      </div>
+      <div class="kpi-icon">{{ k.icon }}</div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="grid">
+    <section class="glass large">
+      <h3>Active Pipelines</h3>
+      <p class="muted">Currently running flowboards and task plans</p>
+      <ul class="pipeline-list">
+        <li *ngFor="let p of activePipelines" class="pipeline-item">
+          <div class="dot" [ngClass]="'dot-' + p.color"></div>
+          <div class="pipeline-info">
+            <div class="pipeline-title">{{ p.title }}</div>
+            <div class="pipeline-sub">{{ p.subtitle }}</div>
+          </div>
+          <span class="badge">{{ p.status }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="glass large">
+      <h3>Recent Runs</h3>
+      <p class="muted">Latest pipeline execution history</p>
+      <ul class="recent-list">
+        <li *ngFor="let r of recentRuns" class="recent-item">
+          <div>
+            <div class="recent-title">{{ r.title }}</div>
+            <div class="recent-sub">{{ r.subtitle }}</div>
+          </div>
+          <div class="status" [ngClass]="r.status === 'Success' ? 'succ' : 'fail'">
+            {{ r.status }}
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Stats row -->
+    <section class="glass stats">
+      <h4><i class="icon">🔧</i> Flowboard Stats</h4>
+      <div class="stat-list">
+        <div *ngFor="let s of statsFlowboard" class="stat-item">{{ s }}</div>
+      </div>
+    </section>
+
+    <section class="glass stats">
+      <h4><i class="icon">🗂️</i> Task Plan Stats</h4>
+      <div class="stat-list">
+        <div *ngFor="let s of statsTaskPlan" class="stat-item">{{ s }}</div>
+      </div>
+    </section>
+
+    <section class="glass stats">
+      <h4><i class="icon">📈</i> Run Statistics</h4>
+      <div class="stat-list">
+        <div *ngFor="let s of runStats" class="stat-item">{{ s }}</div>
+      </div>
+    </section>
+  </div>
+</div>

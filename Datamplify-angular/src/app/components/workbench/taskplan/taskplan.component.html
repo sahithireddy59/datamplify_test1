@@ -1,0 +1,839 @@
+<div class="main-container container-fluid mt-5">
+    <div class="row" style="max-height: 650px;">
+        <div class="col-md-12 mt-4" style="max-height: 650px;">
+            <div class="card" style="max-height: 650px;">
+                <!-- <div class="card-header p-1">
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-primary me-2" style="width: 45px;" ngbTooltip="Back to Taskplan List" container="body" placement="right" (click)="goBackToJobflowList()">
+                            <i class="fa fa-arrow-left" style="font-size: 16px;"></i>
+                        </button>
+                        <h5 class="card-title mb-0">TaskPlan</h5>
+                    </div>
+                </div> -->
+                <div class="card-body p-0" style="max-height: 650px;">
+                    <div class="d-lg-flex d-block" style="max-height: 650px;">
+                        <div class="col-10 py-1 mt-1">
+                            <!-- <div type="button" class="card mb-0 hide-show-btn btn-primary" (click)="isOpen = !isOpen">
+                                <i *ngIf="isOpen" class="fa fa-angle-left fs-18"></i>
+                                <i *ngIf="!isOpen" class="fa fa-angle-right fs-18"></i>
+                            </div> -->
+                            <div *ngIf="jobFlowName.invalid" class="text-danger small">
+                                *JobFlow name can only contain letters, numbers, and underscores.
+                            </div>
+                            <div class="d-flex justify-content-end mb-2">
+                                <button class="btn btn-primary me-2" style="width: 45px;" ngbTooltip="Back to Taskplan List" container="body"
+                                    placement="right" (click)="goBackToJobflowList()">
+                                    <i class="fa fa-arrow-left" style="font-size: 16px;"></i>
+                                </button>
+                                <input type="text" placeholder="Job Flow Name" class="form-control me-1" [(ngModel)]="etlName" #jobFlowName="ngModel" pattern="^[a-zA-Z0-9_]+$">
+                                <button *ngIf="!jobFlowId" type="button" class="btn btn-primary me-1 iconProperties" style="width: 60px;" [disabled]="!etlName || jobFlowName.invalid" (click)="saveOrUpdateEtlJobFlow()">Save</button>
+                                <button *ngIf="jobFlowId" type="button" class="btn btn-primary me-1 iconProperties" style="width: 60px;" [disabled]="!etlName || jobFlowName.invalid" (click)="saveOrUpdateEtlJobFlow()">update</button>
+                                <!-- <button type="button" class="btn btn-primary me-1 iconProperties" (click)="getDataFlowLogs()">Export</button> -->
+                                <button type="button" class="btn btn-primary me-1 iconProperties" style="width: 60px;" [disabled]="!isRunEnable" (click)="runJobFlow()">Run</button>
+                                <!-- <button type="button" class="btn btn-primary me-1 iconProperties" style="width: 60px;" [disabled]="!isRefrshEnable" (click)="getDataFlowStatus(runId)">Refresh</button> -->
+                            </div>
+                            <div class="container-vertical" style="max-height: 600px;">
+                                <div class="top-pane border" [ngbNavOutlet]="nav"></div>
+                                <div *ngIf="isNodeSelected" class="card mb-0 border customsql-result-preview-h resizable-bottom" [ngClass]="isCollapsed ? 'table-collapse':''" resizableTop>
+                                    <div class="resize-handle"></div>
+                                    <div class="card-body p-0 rounded-3 tab-menu-heading tab-menu-heading-boxed">
+                                        <div class="card-header d-flex align-items-center justify-content-between tabs-menu-boxed border-bottom p-1 mb-1 mt-1">
+                                            <ul ngbNav #tableTypes="ngbNav" [(activeId)]="tableTypeTabId" class="nav panel-tabs fs-14 pb-1">
+                                                <li [ngbNavItem]="1"> 
+                                                    <a ngbNavLink class="p-3 TabShadow"> {{isCanvasSelected ? etlName : selectedNode?.data?.nodeData?.general?.name}} </a>
+                                                    <ng-template ngbNavContent>
+                                                        <div class="d-flex">
+                                                            <div class="border-end node-table-left">
+                                                                <ul ngbNav #tableTabs="ngbNav" [(activeId)]="tableTabId" class="nav flex-column nav-pills" id="vertical-tab"
+                                                                    role="tablist" aria-orientation="vertical">
+                                                                    @if(!isCanvasSelected){
+                                                                    <li *ngIf="selectedNode?.data?.type !== 'loop_end'" [ngbNavItem]="1" className="nav-link text-start" id="general-tab"><a ngbNavLink>General</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane tab-content-height" id="years" role="tabpanel" aria-labelledby="years-tab" tabindex="0"
+                                                                                style="height: 100%;">
+                                                                                <div class="col-xl-12 col-lg-12 col-md-12 row g-0">
+                                                                                    <div class="form-group w-100">
+                                                                                        <label for="name" class="fw-bold">Name</label>
+                                                                                        <div class="d-flex">
+                                                                                            <div class="col-4 p-0">
+                                                                                                <input type="text" id="name" name="name" [(ngModel)]="nodeName"
+                                                                                                    class="form-control shadow-sm" (blur)="updateNode('general')" />
+                                                                                            </div>
+                                                                                            <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width"
+                                                                                                (click)="updateNode('general')"><i class="fa fa-chevron-right text-light fs-5"></i></span>
+                                                                                        </div><br>
+                                                                                        <ng-container *ngIf="selectedNode?.data?.type === 'loop'">
+                                                                                            <label for="parameterName" class="label-font-weight">Parameter Name</label><br>
+                                                                                            <input type="text" disabled class="form-control shadow-sm" [(ngModel)]="selectedNode.data.nodeData.general.name" id="parameterName" name="parameterName" style="width: 40%;"><br>
+                                                                                        </ng-container>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    <li *ngIf="!['dataFlow', 'taskCommand', 'dbCommand'].includes(selectedNode.data.type)" [ngbNavItem]="2" className="nav-link text-start" id="properties-tab"><a ngbNavLink>Properties</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
+                                                                                <div class="col-xl-12 col-lg-12 col-md-12">
+                                                                                    <div *ngIf="selectedNode.data.type === 'loop'">
+                                                                                        <label class="label-font-weight"> Type </label><br>
+                                                                                        <select class="form-select" style="width: 40%;" [(ngModel)]="selectedNode.data.nodeData.properties.type" (change)="updateNode('')">
+                                                                                            <option value="sql">SQL</option>
+                                                                                            <option value="command">Command</option>
+                                                                                            <!-- <option value="list">List</option>
+                                                                                            <option value="remote_command">Remote Command</option> -->
+                                                                                        </select><br>
+
+                                                                                        <label *ngIf="selectedNode.data.nodeData.properties.type === 'sql'"> Data Point: {{selectedNode.data.nodeData.properties.dataPoint?.display_name ?? ''}} <a class="link-primary text-decoration-underline" (click)="isDataPointChange = true; changeDataPointPopup(dataPointList, 'loop')">({{selectedNode.data.nodeData.properties.dataPoint?.display_name ? 'change' : 'add'}} )</a></label><br>
+
+                                                                                        <label for="command" class="label-font-weight"> Command </label><br>
+                                                                                        <div class="d-flex">
+                                                                                            <textarea id="command" name="command" rows="3" [(ngModel)]="selectedNode.data.nodeData.properties.command" (blur)="updateNode('')"></textarea>
+                                                                                            <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width" (click)="openExpressionEdit(expressionEdit, 'loopCommand', null)">
+                                                                                                <i class="fa fa-chevron-right text-light icon-font-size"></i>
+                                                                                            </span>
+                                                                                        </div><br>
+                                                                                        <label class="label-font-weight"> Return Type </label><br>
+                                                                                        <select class="form-select" style="width: 40%;" [(ngModel)]="selectedNode.data.nodeData.properties.returnType" (change)="updateNode('')">
+                                                                                            <option *ngFor="let type of returnTypes" [value]="type"> {{type}} </option>
+                                                                                        </select><br>
+
+                                                                                        <label for="delimiter" class="label-font-weight"> Delimiter </label><br>
+                                                                                        <input type="text" class="form-control shadow-sm" id="delimiter" [(ngModel)]="selectedNode.data.nodeData.properties.delimiter" (blur)="updateNode('')" name="delimiter" style="width: 40%;"><br>
+
+                                                                                        <!-- <label for="iterationMode" class="label-font-weight"> Iteration Mode </label><br>
+                                                                                        <input type="radio" id="sequential" value="sequential" name="iterationMode" [(ngModel)]="selectedNode.data.nodeData.properties.iterationMode" (change)="updateNode('')"> <label for="sequential">Sequential</label> <br>
+                                                                                        <input type="radio" id="parallel" value="parallel" name="iterationMode" [(ngModel)]="selectedNode.data.nodeData.properties.iterationMode" (change)="updateNode('')"> <label for="parallel">Parallel</label> <br> -->
+
+                                                                                        <input type="checkbox" id="fail" name="fail" [(ngModel)]="selectedNode.data.nodeData.properties.failZeroRowsReturn" (change)="updateNode('')">
+                                                                                        <label for="fail"> Fail if zero rows Returned</label>
+                                                                                    </div>
+                                                                                    <div *ngIf="selectedNode.data.type === 'email'">
+                                                                                        <label for="to" class="label-font-weight"> To </label><br>
+                                                                                        <div class="d-flex">
+                                                                                            <textarea id="to" name="to" rows="3" [(ngModel)]="selectedNode.data.nodeData.properties.to" (blur)="updateNode('')"></textarea>
+                                                                                            <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width" (click)="openExpressionEdit(expressionEdit, 'to', null)">
+                                                                                                <i class="fa fa-chevron-right text-light icon-font-size"></i>
+                                                                                            </span>
+                                                                                        </div><br>
+
+                                                                                        <label for="cc" class="label-font-weight"> CC </label><br>
+                                                                                        <div class="d-flex">
+                                                                                            <textarea id="cc" name="cc" rows="3" [(ngModel)]="selectedNode.data.nodeData.properties.cc" (blur)="updateNode('')"></textarea>
+                                                                                            <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width" (click)="openExpressionEdit(expressionEdit, 'cc', null)">
+                                                                                                <i class="fa fa-chevron-right text-light icon-font-size"></i>
+                                                                                            </span>
+                                                                                        </div><br>
+
+                                                                                        <label for="subject" class="label-font-weight"> Subject </label><br>
+                                                                                        <div class="d-flex">
+                                                                                            <textarea id="subject" name="subject" rows="3" [(ngModel)]="selectedNode.data.nodeData.properties.subject" (blur)="updateNode('')"></textarea>
+                                                                                            <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width" (click)="openExpressionEdit(expressionEdit, 'subject', null)">
+                                                                                                <i class="fa fa-chevron-right text-light icon-font-size"></i>
+                                                                                            </span>
+                                                                                        </div><br>
+
+                                                                                        <!-- <label for="attachment" class="label-font-weight">Attachment</label><br>
+                                                                                        <input type="text" class="form-control shadow-sm" id="attachment" name="attachment" style="width: 40%;" [(ngModel)]="selectedNode.data.nodeData.properties.attachment" (blur)="updateNode('')"><br>
+
+                                                                                        <button> server</button><br> -->
+
+                                                                                        <label for="Message" class="label-font-weight"> Message </label><br>
+                                                                                        <div class="d-flex">
+                                                                                            <textarea id="Message" name="Message" rows="3" [(ngModel)]="selectedNode.data.nodeData.properties.message" (blur)="updateNode('')"></textarea>
+                                                                                            <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width" (click)="openExpressionEdit(expressionEdit, 'message', null)">
+                                                                                                <i class="fa fa-chevron-right text-light icon-font-size"></i>
+                                                                                            </span>
+                                                                                        </div><br>
+                                                                                    </div>
+                                                                                    <div *ngIf="selectedNode.data.type === 'dataFlow'">
+                                                                                        <label class="label-font-weight"> Logging Level </label><br>
+                                                                                        <select class="form-select" style="width: 40%;">
+                                                                                            <option value="error">ERROR</option>
+                                                                                            <option value="warn">WARN</option>
+                                                                                            <option value="info">INFO</option>
+                                                                                            <option value="debug">DEBUG</option>
+                                                                                             <option value="trace">TRACE</option>
+                                                                                        </select><br>
+
+                                                                                        <label class="label-font-weight"> TForm Cleanup </label><br>
+                                                                                        <select class="form-select" style="width: 40%;">
+                                                                                            <option value="yes">Yes</option>
+                                                                                            <option value="no">No</option>
+                                                                                        </select><br>
+
+                                                                                        <label class="label-font-weight"> JDBC Transform Control </label><br>
+                                                                                        <select class="form-select" style="width: 40%;">
+                                                                                            <option value="yes">Yes</option>
+                                                                                            <option value="no">No</option>
+                                                                                        </select><br>
+                                                                                    </div>
+                                                                                    <div *ngIf="!['taskCommand', 'dbCommand', 'loop', 'loop_end', 'email', 'dataFlow'].includes(selectedNode.data.type)">
+                                                                                        <ng-container *ngIf="selectedNode.data.type === 'taskCommand'">
+                                                                                            <label for="successCodes" class="label-font-weight"> Success Code(s) </label><br>
+                                                                                            <input type="text" class="form-control shadow-sm" value="0, 99" id="successCodes" [(ngModel)]="selectedNode.data.nodeData.properties.successCodes" (blur)="updateNode('')" name="successCodes" style="width: 40%;"><br>
+                                                                                        </ng-container>
+
+                                                                                        <input type="checkbox" id="retryEnable" name="retryEnable" [(ngModel)]="selectedNode.data.nodeData.properties.retryEnable" (change)="updateNode('')">
+                                                                                        <label for="retryEnable"> Retry Enabled</label>
+                                                                                    </div>
+                                                                                     <div *ngIf="selectedNode.data.type === 'loop_end'">
+                                                                                        <label for="looperStartJob" class="label-font-weight">Looper Start Job</label><br>
+                                                                                        <input type="text" disabled class="form-control shadow-sm" id="looperStartJob" name="looperStartJob" style="width: 40%;" [(ngModel)]="selectedNode.data.nodeData.general.name"><br>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    <li *ngIf="['taskCommand', 'dbCommand'].includes(selectedNode.data.type)" [ngbNavItem]="3" className="nav-link text-start" id="command-tab"><a ngbNavLink>Command</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
+                                                                                <div class="col-xl-12 col-lg-12 col-md-12">
+                                                                                    <div *ngIf="selectedNode.data.type === 'taskCommand'">
+                                                                                        <label class="label-font-weight"> Command Type </label><br>
+                                                                                        <select class="form-select" style="width: 40%;" [(ngModel)]="selectedNode.data.nodeData.command.commandType" (change)="updateNode('')">
+                                                                                            <option value="external">External</option>
+                                                                                            <option value="file_watcher">File Watcher</option>
+                                                                                            <!-- <option value="jsonFileSpilt">JSON File Split</option> -->
+                                                                                        </select><br>
+
+                                                                                        <label for="command" class="label-font-weight"> Command </label><br>
+                                                                                        <div class="d-flex">
+                                                                                            <textarea id="command" name="command" rows="3" [(ngModel)]="selectedNode.data.nodeData.command.commandDesc" (blur)="updateNode('')"></textarea>
+                                                                                            <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width" (click)="openExpressionEdit(expressionEdit, 'command', null)">
+                                                                                                <i class="fa fa-chevron-right text-light icon-font-size"></i>
+                                                                                            </span>
+                                                                                        </div>
+
+                                                                                        <ng-container *ngIf="selectedNode.data.nodeData.command.commandType === 'file_watcher'">
+                                                                                            <label for="timeOut" class="fw-bold">Time Out</label>
+                                                                                            <div class="d-flex">
+                                                                                                <div class="col-4 p-0">
+                                                                                                    <input type="number" id="timeOut" name="timeOut" min="0" [(ngModel)]="selectedNode.data.nodeData.command.timeOut"
+                                                                                                        class="form-control shadow-sm" (blur)="updateNode('')" />
+                                                                                                </div>
+                                                                                                <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width"
+                                                                                                    (click)="updateNode('')"><i class="fa fa-chevron-right text-light fs-5"></i></span>
+                                                                                            </div><br>
+                                                                                            <label for="sleepInterval" class="fw-bold">Sleep Interval</label>
+                                                                                            <div class="d-flex">
+                                                                                                <div class="col-4 p-0">
+                                                                                                    <input type="number" id="sleepInterval" name="sleepInterval" min="0"
+                                                                                                        [(ngModel)]="selectedNode.data.nodeData.command.sleepInterval" class="form-control shadow-sm"
+                                                                                                        (blur)="updateNode('')" />
+                                                                                                </div>
+                                                                                                <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width"
+                                                                                                    (click)="updateNode('')"><i class="fa fa-chevron-right text-light fs-5"></i></span>
+                                                                                            </div><br>
+                                                                                        </ng-container>
+                                                                                    </div>
+                                                                                    <div *ngIf="selectedNode.data.type === 'dbCommand'">
+                                                                                        <!-- <input type="checkbox" id="runDBCommand" name="runDBCommand" [(ngModel)]="selectedNode.data.nodeData.command.runDBCommandFile" (change)="updateNode('')">
+                                                                                        <label for="runDBCommand"> Run DB Command From File</label><br> -->
+
+                                                                                        <!-- <input type="checkbox" id="continueExecution" name="continueExecution" [(ngModel)]="selectedNode.data.nodeData.command.continueExecutionFailure" (change)="updateNode('')">
+                                                                                        <label for="continueExecution"> Continue execution on failure</label><br> -->
+
+                                                                                        <label for="dbCommand" class="label-font-weight"> DB Command </label><br>
+                                                                                        <div class="d-flex">
+                                                                                            <textarea id="dbCommand" name="dbCommand" rows="3" [(ngModel)]="selectedNode.data.nodeData.command.dbCommand" (blur)="updateNode('')"></textarea>
+                                                                                            <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width" (click)="openExpressionEdit(expressionEdit, 'dbCommand', null)">
+                                                                                                <i class="fa fa-chevron-right text-light icon-font-size"></i>
+                                                                                            </span>
+                                                                                        </div><br>
+
+                                                                                        <!-- <label class="label-font-weight"> DB Command Output File </label><br>
+                                                                                        <select class="form-select" style="width: 40%;" [(ngModel)]="selectedNode.data.nodeData.command.dbCommandOutputFile" (change)="updateNode('')">
+                                                                                            <option value="$$SrcFileDir">$$SrcFileDir</option>
+                                                                                            <option value="$$TgtFileDir">$$TgtFileDir</option>
+                                                                                        </select><br> -->
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    <li *ngIf="selectedNode.data.type === 'dbCommand'" [ngbNavItem]="4" className="nav-link text-start" id="data-points-tab"><a ngbNavLink>Data Points</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
+                                                                                <div class="col-xl-12 col-lg-12 col-md-12">
+                                                                                    <div>
+                                                                                        <label> Data Point: {{selectedNode.data.nodeData.dataPoints.dataPoint}} <a class="link-primary text-decoration-underline" (click)="isDataPointChange = true; changeDataPointPopup(dataPointList, 'dbCommand')">( change )</a> </label><br>
+                                                                                        <!-- <label> Data Point Schema: {{selectedNode.data.nodeData.dataPoints.dataPointSchema}} </label> -->
+                                                                                    </div>
+                                                                                </div> 
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    <li *ngIf="selectedNode.data.type === 'dataFlow'" [ngbNavItem]="5" className="nav-link text-start" id="data-points-tab"><a ngbNavLink>Connections</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
+                                                                                <div class="col-xl-12 col-lg-12 col-md-12">
+                                                                                    <div class="mt-3 table-responsive table-responsive-height">
+                                                                                        <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
+                                                                                            <thead class="Result-preview-table-sticky">
+                                                                                                <tr>
+                                                                                                    <th>Data Object</th>
+                                                                                                    <th>Type</th>
+                                                                                                    <th>Database</th>
+                                                                                                </tr>
+                                                                                            </thead>
+                                                                                            <tbody>
+                                                                                                @for(connection of selectedNode.data.nodeData.connections; track connection; let i = $index){
+                                                                                                <tr>
+                                                                                                    <td>{{connection.data.nodeData.general.name}}</td>
+                                                                                                    <td>{{connection.data.type === 'source_data_object' ? 'Source' : 'Target' }}</td>
+                                                                                                    <td>{{connection.data.nodeData.connection.display_name}}</td>
+                                                                                                </tr>
+                                                                                                }
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    <li *ngIf="selectedNode.data.type === 'dataFlow'" [ngbNavItem]="6" className="nav-link text-start" id="data-points-tab"><a ngbNavLink>DataFlow Transforms</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
+                                                                                <div class="col-xl-12 col-lg-12 col-md-12">
+                                                                                    <div class="mt-3 table-responsive table-responsive-height">
+                                                                                        <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
+                                                                                            <thead class="Result-preview-table-sticky">
+                                                                                                <tr>
+                                                                                                    <th>Transform Name</th>
+                                                                                                </tr>
+                                                                                            </thead>
+                                                                                            <tbody>
+                                                                                                @for(transform of selectedNode.data.nodeData.transformations; track transform; let i = $index){
+                                                                                                <tr>
+                                                                                                    <td>{{transform.data.nodeData.general.name}}</td>
+                                                                                                </tr>
+                                                                                                }
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </div>
+                                                                                </div> 
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    <li *ngIf="selectedNode.data.type === 'dataFlow'" [ngbNavItem]="7" className="nav-link text-start" id="data-points-tab"><a ngbNavLink>DataFlow Parameters</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
+                                                                                <div class="col-xl-12 col-lg-12 col-md-12">
+                                                                                    <div>
+                                                                                        
+                                                                                    </div>
+                                                                                </div> 
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    } @else{
+                                                                    <li [ngbNavItem]="8" className="nav-link text-start" id="parameter-tab"><a ngbNavLink>Parameters</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
+                                                                                <div class="col-xl-12 col-lg-12 col-md-12">
+                                                                                    @if(canvasData?.parameters?.length > 0){
+                                                                                    <div class="d-flex justify-content-end align-items-center gap-2 mb-3">
+                                                                                        <button class="btn btn-sm btn-primary d-flex align-items-center" ngbTooltip="Add"
+                                                                                            [triggers]="'hover'" (click)="addNewParameter()">
+                                                                                            <i class="fa fa-plus me-1"></i> Add
+                                                                                        </button>
+                                                                                        <div class="input-group input-group-sm search-width-height">
+                                                                                            <input type="text" class="form-control" placeholder="Search" [(ngModel)]="parameterSearchTerm"/>
+                                                                                            <span class="input-group-text bg-primary" ngbTooltip="Search" [triggers]="'hover'">
+                                                                                                <i class="fa fa-search text-light"></i>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div style="height: 240px; overflow-y: auto;" class="table-responsive table-responsive-height">
+                                                                                        <table class="table table-bordered table-striped text-nowrap mb-0">
+                                                                                            <thead class="Result-preview-table-sticky table-light sticky-top">
+                                                                                                <tr>
+                                                                                                    <th>#</th>
+                                                                                                    <th>Param Name</th>
+                                                                                                    <th>Data Type</th>
+                                                                                                    <th>Default</th>
+                                                                                                    <th>Action</th>
+                                                                                                </tr>
+                                                                    
+                                                                                            </thead>
+                                                                                            <tbody>
+                                                                                                @for(parameter of canvasData?.parameters | dataFlowSearchFilter:parameterSearchTerm:'paramName' ; track parameter; let i = $index){
+                                                                                                <tr>
+                                                                                                    <td>{{ i + 1 }}</td>
+                                                                                                    <td><input type="text" class="form-control"
+                                                                                                            [(ngModel)]="parameter.paramName" (blur)="updateNode('parameter')" /></td>
+                                                                                                    <td>
+                                                                                                        <select class="form-select" [(ngModel)]="parameter.dataType"
+                                                                                                            (change)="updateNode('parameter')">
+                                                                                                            <option value="" selected disabled>Select</option>
+                                                                                                            <option *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
+                                                                                                        </select>
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <div class="input-group">
+                                                                                                            <input type="text" class="form-control" [(ngModel)]="parameter.default"
+                                                                                                                (blur)="updateNode('parameter')" />
+                                                                                                            <span class="input-group-text bg-primary" ngbTooltip=""
+                                                                                                                (click)="openExpressionEdit(expressionEdit, parameter, i)">
+                                                                                                                <i class="fa-solid fa-up-right-from-square"></i>
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                    </td>
+                                                                                                    <td style="display: flex; align-items: center; justify-content: center;">
+                                                                                                        <button class="btn btn-outline-danger" ngbTooltip="Delete" [triggers]="'hover'"
+                                                                                                            (click)="deleteParameter(i)">
+                                                                                                            <i class="fa fa-trash"></i>
+                                                                                                        </button>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                                }
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </div>
+                                                                                    } @else{
+                                                                                    <div class="d-flex">
+                                                                                        <span>No Parameter exists, to add </span> &nbsp;
+                                                                                        <button class="btn btn-sm btn-primary d-flex align-items-center" ngbTooltip="Add Attribute"
+                                                                                            [triggers]="'hover'" (click)="addNewParameter()">
+                                                                                            <i class="fa fa-plus me-2"></i> Click Here
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    }
+                                                                                </div>
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    <li [ngbNavItem]="9" className="nav-link text-start" id="SQL-Parametere-tab"><a
+                                                                            ngbNavLink>SQL Parameters</a>
+                                                                        <ng-template ngbNavContent>
+                                                                            <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
+                                                                                <!-- <div class="col-xl-12 col-lg-12 col-md-12"> -->
+                                                                                    @if(canvasData?.sqlParameters?.length > 0){
+                                                                                    <div class="d-flex justify-content-start align-items-center gap-2 mb-3">
+                                                                                        <button class="btn btn-sm btn-primary d-flex align-items-center" ngbTooltip="Add"
+                                                                                            [triggers]="'hover'" (click)="addNewSQLParameter()">
+                                                                                            <i class="fa fa-plus me-1"></i> Add
+                                                                                        </button>
+                                                                                        <div class="input-group input-group-sm search-width-height">
+                                                                                            <input type="text" class="form-control" placeholder="Search" />
+                                                                                            <span class="input-group-text bg-primary" ngbTooltip="Search" [triggers]="'hover'">
+                                                                                                <i class="fa fa-search text-light"></i>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div style="height: 240px; overflow-y: auto; width: max-content;" class="table-responsive table-responsive-height">
+                                                                                        <table class="table table-bordered table-striped text-nowrap mb-0">
+                                                                                            <thead class="Result-preview-table-sticky table-light sticky-top">
+                                                                                                <tr>
+                                                                                                    <th>#</th>
+                                                                                                    <th>Param Name</th>
+                                                                                                    <th>Data Type</th>
+                                                                                                    <th>    </th>
+                                                                                                    <th>Database</th>
+                                                                                                    <th>DependentJobName</th>
+                                                                                                    <th>Job Order</th>
+                                                                                                    <th>SQL</th>
+                                                                                                    <th>Default</th>
+                                                                                                    <th>Action</th>
+                                                                                                </tr>
+                                                                    
+                                                                                            </thead>
+                                                                                            <tbody>
+                                                                                                @for(parameter of canvasData?.sqlParameters; track parameter; let i = $index){
+                                                                                                <tr>
+                                                                                                    <td>{{ i + 1 }}</td>
+                                                                                                    <td><input type="text" class="form-control"
+                                                                                                            [(ngModel)]="parameter.paramName" (blur)="updateNode('parameter')" /></td>
+                                                                                                    <td>
+                                                                                                        <select class="form-select" [(ngModel)]="parameter.dataType"
+                                                                                                            (change)="updateNode('parameter')">
+                                                                                                            <option value="" selected disabled>Select</option>
+                                                                                                            <option *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
+                                                                                                        </select>
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <span (click)="isDataPointChange = true; changeDataPointPopup(dataPointList, 'sqlParameters', i)"><i class="fa fa-edit"></i></span>
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        {{parameter?.dataPoint?.display_name}}
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <ng-select [items]="parameter.jobsList" bindLabel="data.nodeData.general.name" [(ngModel)]="parameter.dependentJobName" 
+                                                                                                        [searchable]="true"></ng-select>
+
+                                                                                                        <!-- <select class="form-select" [(ngModel)]="parameter.dependentJobName">
+                                                                                                            <option value="intialization">Initialization</option>
+                                                                                                            <option *ngFor="let job of parameter.jobsList" [ngValue]="job">{{job?.data?.nodeData?.general?.name}}</option>
+                                                                                                        </select> -->
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <select class="form-select" [(ngModel)]="parameter.jobOrder" (change)="parameter.jobOrder === 'intialization' ? parameter.dependentJobName = 'intialization' : null" [disabled]="parameter.dependentJobName === 'intialization'">
+                                                                                                            <option value="intialization">Initialization</option>
+                                                                                                            <option value="before">BEFORE</option>
+                                                                                                            <option value="after">AFTER</option>
+                                                                                                        </select>
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <div class="input-group">
+                                                                                                            <input type="text" class="form-control" [(ngModel)]="parameter.sql"
+                                                                                                                (blur)="updateNode('parameter')" />
+                                                                                                            <span class="input-group-text bg-primary" ngbTooltip=""
+                                                                                                                (click)="openExpressionEdit(expressionEdit, parameter, i)">
+                                                                                                                <i class="fa-solid fa-up-right-from-square"></i>
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                    </td>
+                                                                                                    <td><input type="text" class="form-control" [(ngModel)]="parameter.default"
+                                                                                                            (blur)="updateNode('parameter')" /></td>
+                                                                                                    <td>
+                                                                                                        <button class="btn btn-outline-danger" ngbTooltip="Delete" [triggers]="'hover'"
+                                                                                                            (click)="deleteSQLParameter(i)">
+                                                                                                            <i class="fa fa-trash"></i>
+                                                                                                        </button>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                                }
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </div>
+                                                                                    } @else{
+                                                                                    <div class="d-flex">
+                                                                                        <span>No SQL Parameter exists, to add </span> &nbsp;
+                                                                                        <button class="btn btn-sm btn-primary d-flex align-items-center" ngbTooltip="Add SQL Parameter"
+                                                                                            [triggers]="'hover'" (click)="addNewSQLParameter()">
+                                                                                            <i class="fa fa-plus me-2"></i> Click Here
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    }
+                                                                                <!-- </div> -->
+                                                                            </div>
+                                                                        </ng-template>
+                                                                    </li>
+                                                                    <!-- <li [ngbNavItem]="10" className="nav-link text-start" id="load-order-tab"><a
+                                                                            ngbNavLink>Load Order</a>
+                                                                        <ng-template ngbNavContent>
+                                                                        </ng-template>
+                                                                    </li> -->
+                                                                    }
+                                                                </ul>
+                                                            </div>
+                                                        
+                                                            <div class="p-2 node-table-right">
+                                                                <div class="tab-content" id="vertical-tabContent">
+                                                                    <div [ngbNavOutlet]="tableTabs"></div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </ng-template>
+                                                </li>
+                                                <li *ngIf="isLogShow" [ngbNavItem]="2" (click)="getJobFlowLogs(selectedNode.data.nodeData.general.name)"> <a ngbNavLink class="p-3 TabShadow"> Logs </a>
+                                                    <ng-template ngbNavContent>
+                                                        <app-etl-logger-view [logs]="logs"></app-etl-logger-view>
+                                                    </ng-template>
+                                                </li>
+                                            </ul>
+                                            <div type="button" class="btn btn-primary" (click)="toggleCollapse()">
+                                                <i *ngIf="isCollapsed" class="fa fa-angle-up fs-18"></i>
+                                                <i *ngIf="!isCollapsed" class="fa fa-angle-down fs-18"></i>
+                                            </div>
+                                            <!-- <div class="d-flex justify-content-end align-items-center me-1">
+                                                <button class="btn btn-sm btn-primary" (click)="toggleCollapse()">
+                                                    <i class="mdi" [ngClass]="isCollapsed ? 'mdi-chevron-down' : 'mdi-chevron-up'"></i>
+                                                </button>
+                                            </div> -->
+                                        </div>
+                                        <div class="d-flex p-1">
+                                            <div class="tab-content tab-content-width" id="vertical-tabContent">
+                                                <div [ngbNavOutlet]="tableTypes"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-2 p-1 border-end mt-1" [ngStyle]="{ 'display': isOpen ? 'block' : 'none' }">
+                            <div class="card mb-0 connections-layer-h">
+                                <ul ngbNav #nav="ngbNav" [(activeId)]="active" class="nav flex-column nav-pills" id="vertical-tab"
+                                    role="tablist" aria-orientation="vertical">
+                                    <li [ngbNavItem]="1">
+                                        <div ngbAccordion [closeOthers]="true" class="accordion border-0 mb-2" id="accordionExample">
+                                            <div ngbAccordionItem #accItemDataFlow="ngbAccordionItem" [collapsed]="false"
+                                                class="accordion-item">
+                                                <h2 ngbAccordionHeader class="accordion-header" id="headingOne">
+                                                    <button ngbAccordionButton class="accordion-button py-3 px-3" type="button"
+                                                        data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true"
+                                                        aria-controls="collapseOne">
+                                                        <img [src]="accItemDataFlow.collapsed ? './assets/images/etl/dataFlow_Instance-etl.svg' : './assets/images/etl/dataFlow_Instance-etl-1.svg'"
+                                                            alt="Data Flow Instance" class="drawflow-image me-2">Data Flow Instance
+                                                    </button>
+                                                </h2>
+                                                <div ngbAccordionCollapse id="collapseOne" class="accordion-collapse collapse show"
+                                                    aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                                                    <div class="accordion-body p-0" ngbAccordionBody>
+                                                        <ng-template>
+                                                            <div class="data-cdk-tables p-0">
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'dataFlow', dataFlowList)"
+                                                                    data-node="postgresSQL">
+                                                                    <img src="./assets/images/etl/PostgreSQL-etl.svg" alt="postgresSQL"
+                                                                        class="drawflow-image"><span> postgresSQL</span>
+                                                                </div>
+                                                            </div>
+                                                        </ng-template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div ngbAccordion [closeOthers]="true" class="accordion border-0 mb-2" id="accordionExample">
+                                            <div ngbAccordionItem #accItemJobs="ngbAccordionItem" [collapsed]="true" class="accordion-item">
+                                                <h2 ngbAccordionHeader class="accordion-header" id="headingOne">
+                                                    <button ngbAccordionButton class="accordion-button py-3 px-3" type="button"
+                                                        data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true"
+                                                        aria-controls="collapseOne">
+                                                        <img [src]="accItemJobs.collapsed ? './assets/images/etl/jobs-etl.svg' : './assets/images/etl/jobs-etl-1.svg'"
+                                                            alt="Jobs" class="drawflow-image me-2">Jobs
+                                                    </button>
+                                                </h2>
+                                                <div ngbAccordionCollapse id="collapseOne" class="accordion-collapse collapse show"
+                                                    aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                                                    <div class="accordion-body p-0" ngbAccordionBody>
+                                                        <ng-template>
+                                                            <div class="data-cdk-tables p-0">
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'taskCommand', null)"
+                                                                    data-node="Task Command">
+                                                                    <img src="./assets/images/etl/task_command-etl.svg" alt="Task Command"
+                                                                        class="drawflow-image"><span> Task Command</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="isDataPointChange = false; onDragStart($event, 'dbCommand', dataPointList)"
+                                                                    data-node="DB Command">
+                                                                    <img src="./assets/images/etl/db_command-etl.svg" alt="DB Command"
+                                                                        class="drawflow-image"><span> DB Command</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'loop', null)" data-node="Loop">
+                                                                    <img src="./assets/images/etl/loop-etl.svg" alt="Loop"
+                                                                        class="drawflow-image"><span> Loop</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'email', null)"
+                                                                    data-node="Email Notification">
+                                                                    <img src="./assets/images/etl/email-etl.svg" alt="Email Notification"
+                                                                        class="drawflow-image"><span> Email Notification</span>
+                                                                </div>
+                                                            </div>
+                                                        </ng-template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <ng-template ngbNavContent>
+                                            <div id="drawflow" #drawflow [ngClass]="isOpen ? 'drawflow-width-half' : 'drawflow-width-full'"
+                                                (drop)="onDrop($event)" (dragover)="onDragOver($event)">
+                                                <div class="bar-zoom">
+                                                    <i class="fas fa-search-minus" (click)="canvasZoomOut()"></i>
+                                                    <i class="fas fa-search" (click)="canvasZoomReset()"></i>
+                                                    <i class="fas fa-search-plus" (click)="canvasZoomIn()"></i>
+                                                </div>
+                                            </div>
+                                        </ng-template>
+                                    </li>
+                                    <!-- <li [ngbNavItem]="2">
+                                                                <a ngbNavLink class="p-3 TabShadow">Job Flow</a>
+                                                                <ng-template ngbNavContent>
+                                                                    <div id="drawflow" #drawflow [ngClass]="isOpen ? 'drawflow-width-half' : 'drawflow-width-full'" (drop)="onDrop($event)" (dragover)="onDragOver($event)">
+                                                                    </div>
+                                                                </ng-template>
+                                                            </li> -->
+                                </ul>
+                            </div>
+                        
+                        </div>
+                    </div>
+                </div>
+                <!-- <div class="card-footer p-3">
+                    
+                </div> -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<ng-template #dataFlowList let-modal>
+    <div class="modal-header">
+        <h6 class="modal-title">Data Flow Instace</h6>
+        <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+        </button>
+    </div>
+    <div class="modal-body">
+        <div class="panel panel-primary">
+            <div class="tables-modal">
+                <label for="connection">Select DataFlow <span class="text-danger">*</span></label>
+                <ng-select [items]="dataFlowOptions" bindLabel="Flow_name" placeholder="Select a dataFlow" [searchable]="true" 
+                    [(ngModel)]="selectedDataFlow" name="dataFlow" id="dataFlow" (change)="getDataFlow(selectedDataFlow.id)">
+                </ng-select>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-right">
+            <button type="button" class="btn ripple btn-secondary me-2"
+                (click)="modal.close('Cross click'); selectedDataFlow = null;">Cancel</button>
+            <button type="button" [disabled]="!selectedDataFlow" class="btn ripple btn-primary" (click)="addNode(nodeToAdd, posX, posY); modal.dismiss('Save click')">Ok</button>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #expressionEdit let-modal>
+    <div class="modal-header">
+        <h5 class="modal-title">Expression Editor - {{(isParameter || isSQLParameter) ? etlName : selectedNode?.data?.nodeData?.general?.name}} ({{(isParameter || isSQLParameter) ? 'Job Flow' : selectedNode?.data?.type}}) </h5>
+        <button type="button" class="btn-close text-light" aria-label="Close" (click)="modal.dismiss('Cross click'); isParameter = false; isSQLParameter = false; isTaskCommand = false; isDbCommand = false; isLoopCommand = false; isTo = false; isCC = false; isSubject = false; isMessage = false;"></button>
+    </div>
+
+    <div class="modal-body">
+
+        <div class="mb-2 d-flex justify-content-between align-items-center">
+            @if(isParameter || isSQLParameter){
+            <label class="form-label mb-0"><b>*{{selectedField?.paramName}} ({{selectedField?.dataType}})</b></label>
+            } @else{
+            <label class="form-label mb-0"><b>*{{selectedField}} (boolean)</b></label>
+            }
+        </div>
+
+        <div class="mb-1">
+            <textarea #expressionTextarea class="form-control tab-content-width" rows="8" placeholder="Enter expression..." [(ngModel)]="expression">
+            </textarea>
+        </div>
+
+        <!-- TABLE WRAPPER -->
+        <div>
+            <table class="table table-bordered w-100 mb-0">
+                <thead>
+                    <tr>
+                        <th class="fw-bold bg-primary text-white col-4">
+                            <select class="form-select" [(ngModel)]="expEditorAddType" (change)="onTypeChange()">
+                                <option value="parameters">Parameters</option>
+                                <option value="functions">Functions</option>
+                            </select>
+                        </th>
+                        <th class="fw-bold bg-primary text-white col-4"> {{selectedGroup}} </th>
+                        <th class="fw-bold bg-primary text-white col-4"> {{selectedColumn.attributeName || selectedColumn.label}} </th>
+                    </tr>
+                </thead>
+            </table>
+            <div style="max-height: 235px; overflow: auto;">
+                <table class="table table-bordered w-100 mb-0">
+                    <tbody>
+                        <tr>
+            
+                            <!-- Transforms Column -->
+                            <td *ngIf="expEditorAddType === 'parameters'" class="align-top col-4">
+                                <div style="max-height: 200px; overflow-y: auto;">
+                                    <div *ngFor="let group of groupedColumns | keyvalue" class="text-break py-1 px-2 hover-bg"
+                                        style="cursor: pointer;" [class.bg-primary]="selectedGroup === group.key"
+                                        [class.text-white]="selectedGroup === group.key" (click)="selectedGroup = group.key">
+                                        {{ group.key }}
+                                    </div>
+                                </div>
+                            </td>
+            
+                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
+                                <div style="max-height: 200px; overflow-y: auto;">
+                                    <div *ngFor="let group of functionGroupType" class="text-break py-1 px-2 hover-bg"
+                                        style="cursor: pointer;" [class.bg-primary]="selectedGroup === group.value"
+                                        [class.text-white]="selectedGroup === group.value" (click)="selectedGroup = group.value">
+                                        {{ group.key }}
+                                    </div>
+                                </div>
+                            </td>
+            
+                            <!-- Selected Transform -->
+                            <td *ngIf="expEditorAddType === 'parameters'" class="align-top col-4">
+                                <input type="text" class="form-control form-control-sm mb-2" placeholder="Search fields..."
+                                    [(ngModel)]="expEditorSearchTerm" />
+                                <div style="max-height: 200px; overflow-y: auto;">
+                                    <div *ngFor="let column of (groupedColumns[selectedGroup] || []) | dataFlowSearchFilter:expEditorSearchTerm:'label'"
+                                        class="text-break py-1 px-2 hover-bg" style="cursor: pointer;"
+                                        (click)="selectedColumn = column; insertOrReplace(selectedGroup + '.' + column.label, expressionTextarea);">
+                                        {{ column.label }}
+                                    </div>
+                                </div>
+                            </td>
+            
+                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
+                                <input type="text" class="form-control form-control-sm mb-2" placeholder="Search"
+                                    [(ngModel)]="expEditorSearchTerm" />
+                                <div style="max-height: 200px; overflow-y: auto;">
+                                    <div *ngFor="let function of functions[selectedGroup] | dataFlowSearchFilter:expEditorSearchTerm:'key'"
+                                        class="text-break py-1 px-2 hover-bg" style="cursor: pointer;"
+                                        (click)="selectedColumn = function; insertOrReplace(selectedColumn.value, expressionTextarea);"
+                                        [class.bg-primary]="selectedColumn.value === function.value"
+                                        [class.text-white]="selectedColumn.value === function.value">
+                                        {{ function.key }}
+                                    </div>
+                                </div>
+                            </td>
+            
+                            <!-- Selected Column -->
+                            <td *ngIf="expEditorAddType === 'parameters'" class="align-top col-4">
+                                <div *ngIf="selectedColumn">
+                                    <div><b>{{selectedColumn.attributeName || selectedColumn.label}}</b></div>
+                                    <div>Data type: {{selectedColumn.dataType}}</div>
+                                </div>
+                                <div *ngIf="!selectedField" class="text-muted">No column selected</div>
+                            </td>
+            
+                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
+                                <div *ngIf="selectedColumn" style="max-height: 220px; overflow-y: auto;">
+                                    <div><b>{{selectedColumn.value}}</b></div>
+                                    <div><strong>Syntax : </strong> {{selectedColumn.syntax}} </div>
+                                    <div><strong>Return Type: </strong> {{selectedColumn.returnType}}</div>
+                                    <div><strong>Description: </strong> {{selectedColumn.description}}</div>
+                                </div>
+                                <div *ngIf="!selectedField" class="text-muted">No column selected</div>
+                            </td>
+            
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="modal.dismiss('cancel'); isParameter = false; isSQLParameter = false;  isTaskCommand = false; isDbCommand = false; isLoopCommand = false; isTo = false; isCC = false; isSubject = false; isMessage = false;">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="updateExpressionToNode(); modal.dismiss('Save click'); isParameter = false; isSQLParameter = false;">OK</button>
+    </div>
+</ng-template>
+
+<ng-template #dataPointList let-modal>
+    <div class="modal-header">
+        <h6 class="modal-title">{{isDataPointChange ? 'Change Data Point' : 'Create DBCommand'}}</h6>
+        <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+        </button>
+    </div>
+    <div class="modal-body">
+        <div class="panel panel-primary">
+            <div class="tables-modal">
+                    <label for="dataPoint">Select DataPoint <span class="text-danger">*</span></label>
+                    <ng-select *ngIf="dataPointPopUpFrom !== 'sqlParameters'" [items]="dataPointOptions" bindLabel="display_name" placeholder="Select a connection"
+                        [searchable]="true" [(ngModel)]="selectedDataPoint" name="dataPoint" id="dataPoint">
+                    </ng-select><br>
+                    <ng-select *ngIf="dataPointPopUpFrom === 'sqlParameters'" [items]="dataPointOptions" bindLabel="display_name" placeholder="Select a connection"
+                        [searchable]="true" [(ngModel)]="canvasData.sqlParameters[dataPointIndexForSqlParameter].dataPoint" name="dataPoint" id="dataPoint">
+                    </ng-select><br>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-right">
+            <button type="button" class="btn ripple btn-secondary me-2"
+                (click)="modal.close('Cross click'); selectedDataPoint = null;">Cancel</button>
+            <button type="button" [disabled]="(dataPointPopUpFrom !== 'sqlParameters' && !selectedDataPoint) || (dataPointPopUpFrom === 'sqlParameters' && !canvasData?.sqlParameters[dataPointIndexForSqlParameter]?.dataPoint)" class="btn ripple btn-primary" (click)="isDataPointChange ? updateDataPointToNode(dataPointPopUpFrom) : addNode(nodeToAdd, posX, posY); modal.dismiss('Save click')">Ok</button>
+        </div>
+    </div>
+</ng-template>
+  

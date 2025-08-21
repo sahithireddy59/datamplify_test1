@@ -1,0 +1,84 @@
+<div class="container-fluid py-4 mt-5">
+  <div class="card glass-card shadow-lg border-0">
+    <div class="card-header d-flex justify-content-between align-items-center bg-transparent border-0">
+      <h4 class="mb-0 fw-bold">Connections</h4>
+      <button class="btn btn-outline-primary rounded-pill shadow-sm"
+              (click)="toggleAddConnection()">
+        {{ isAddingConnection ? 'Cancel' : 'Add Connection' }}
+      </button>
+    </div>
+
+    <div class="card-body">
+      <!-- Existing connections -->
+      <div class="row g-3">
+        <div class="col-md-4" *ngFor="let conn of connections">
+          <div class="card h-100 glass-light border-0 shadow-sm p-3">
+            <h5 class="fw-semibold text-dark">{{ conn.name }}</h5>
+            <p class="text-muted mb-1"><i class="bi bi-diagram-3"></i> {{ conn.type }}</p>
+            <span class="badge"
+                  [ngClass]="conn.status === 'Active' ? 'bg-success' : 'bg-secondary'">
+              {{ conn.status }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add connection -->
+      <div *ngIf="isAddingConnection" class="mt-4">
+        <h5 class="fw-bold">Choose Connection Type</h5>
+        <div class="d-flex gap-3 flex-wrap mb-4">
+          <button *ngFor="let type of connectionTypes"
+                  class="btn rounded-pill px-4 shadow-sm"
+                  [ngClass]="selectedConnectionType === type ? 'btn-primary' : 'btn-outline-primary'"
+                  (click)="selectType(type)">
+            {{ type }}
+          </button>
+        </div>
+
+        <!-- Dynamic Form -->
+        <form *ngIf="selectedConnectionType">
+          <h6 class="fw-bold text-secondary">New {{ selectedConnectionType }} Connection</h6>
+
+          <!-- Database -->
+          <div *ngIf="selectedConnectionType === 'Database'" class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Host</label>
+              <input type="text" class="form-control" placeholder="localhost">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Port</label>
+              <input type="number" class="form-control" placeholder="5432">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" placeholder="user">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-control" placeholder="password">
+            </div>
+          </div>
+
+          <!-- File -->
+          <div *ngIf="selectedConnectionType === 'File'" class="mb-3">
+            <label class="form-label">Upload File</label>
+            <input type="file" class="form-control">
+          </div>
+
+          <!-- Integration -->
+          <div *ngIf="selectedConnectionType === 'Integration'" class="mb-3">
+            <label class="form-label">API Key</label>
+            <input type="text" class="form-control" placeholder="Enter API Key">
+          </div>
+
+          <div class="mt-3">
+            <button type="button" class="btn btn-success rounded-pill shadow-sm"
+                    (click)="addConnection()">
+              Create Connection
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

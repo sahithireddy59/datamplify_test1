@@ -1,0 +1,11 @@
+.default-background-color{
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+.default-background-color:focus,
+.default-background-color:active{
+    background-color: var(--primary-color);
+}
+.default-color{
+    color: var(--primary-color);
+}

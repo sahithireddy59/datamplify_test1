@@ -1,0 +1,375 @@
+<div class="main-container container-fluid">
+    <div class="main-demo main-demo-1 overflow-hidden reveal landing-top-header active header-bg-radius" id="home" #home>
+        <div class="container px-sm-0">
+        <div class="row justify-content-center">
+            <div class="col-xl-8 col-lg-6 pb-5 text-center my-auto animation-zidex pos-relative landing-main-heading">
+                <h1 class="text-  tx-fixed-white mt-0">Amplify your data - Simplify your flow</h1>
+            </div>
+        </div>
+        </div>
+    </div>
+    <!-- ROW-1 OPEN-->
+    <div class="col-lg-12 p-0 mt-3">
+        <div class="landing-connect-search mb-3 ">
+            <button class="btn btn-primary new-sheet-btn-radius me-2" (click)="goToDataFlow()">
+                <i class="fe fe-plus me-1"></i>New FlowBoard
+            </button>
+            <button class="btn btn-primary new-sheet-btn-radius me-2" (click)="goToJobFlow()">
+                <i class="fe fe-plus me-1"></i>New TaskPlan
+            </button>
+            <button class="btn btn-primary new-sheet-btn-radius me-2" (click)="goToNewConnection()">
+                <i class="fe fe-plus me-1"></i>New Connection
+            </button>
+            <button class="btn btn-primary new-sheet-btn-radius" (click)="dashboard()">Dashboard</button>
+            <div class="view-card">
+                <div class="input-group">
+                    <input type="text" class="form-control border" [(ngModel)]="wholeSearch" (keyup.enter)="totalSearch()" placeholder="Search ...">
+                    <button type="button" (click)="totalSearch()" aria-label="button" class="btn input-group-text btn-primary tx-fixed-white border-start-0">
+                        <i class="fe fe-search" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-1">
+        <div class="col-xl-9">
+            <div class="card border p-4">
+                <div class="row">
+                    <div class="d-flex align-items-center justify-content-between border-bottom mb-3">
+                        <h6 class="fw-bold mb-1">Saved FlowBoards</h6>
+                        <div class="view-card">
+                            @if(!showAllDataFlows && dataFlowList.length !==0){
+                            <a class="">
+                                <span class="add-txt card-title me-2" (click)="showAllDataFlows=!showAllDataFlows">Show Less <i
+                                        class="fa fa-angle-double-right"> </i></span>
+                            </a>
+                            } @if(showAllDataFlows && dataFlowList.length !==0){
+                            <a class="" *ngIf="dataFlowList.length > 4">
+                                <span class="add-txt card-title me-2" (click)="showAllDataFlows=!showAllDataFlows">View More <i
+                                        class="fa fa-angle-double-right"> </i></span>
+                            </a>
+                            }
+                        </div>
+                    </div>
+                    <div *ngIf="dataFlowList.length === 0">
+                        No FlowBoards to display!
+                    </div>
+                    <ng-container *ngFor="let dataFlow of dataFlowList;let i = index">
+                        <div *ngIf="i < 11" class="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
+                            <div *ngIf="showAllDataFlows && i < 4" class="card  img-shadow mb-0">
+                                <!-- <img src="./assets/images/Landingpage-images/recently-view/recent-1.jpg" class="card-img-top " alt="img"> -->
+                                <div class="card-body p-2 d-flex align-items-center justify-content-between">
+                                    <span class="avatar avatar-sm avatar-radius w-6 h-6 border me-1">
+                                        <!-- <img  alt="product" class="avatar-radius" src="./assets/images/icons/postSQL-icon.jpg"> -->
+                                        <img
+                                            src="./assets/images/charts/post-tiled-icon.jpg" alt=""
+                                            class="avatar-radius">
+                                    </span>
+                                    <div class="dashboard-card-title">
+                                        <h5 class="card-title   mb-1 cursor-pointer" ngbTooltip="{{dataFlow.Flow_name}}"
+                                            (click)="editDataFlow(dataFlow.id)"> {{dataFlow.Flow_name | slice:0:11}}</h5>
+                                        <p class="card-text text-truncate">Modified on {{dataFlow.updated_at | date: 'yyyy-MM-dd HH:mm:ss'}} </p>
+                                    </div>
+                                    <div class="dashboard-option">
+                                        <div class="d-flex justify-content-end p-1" ngbDropdown>
+                                            <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" ngbDropdownToggle
+                                                aria-haspopup="true" aria-expanded="false" class=""><i
+                                                    class="fe fe-more-vertical fs-18 text-body-secondary"></i>
+                                            </a>
+                                            <div class="dropdown-menu" ngbDropdownMenu>
+                                                <a class="dropdown-item" (click)="editDataFlow(dataFlow.id)">
+                                                    <i class="fe fe-edit me-2 d-inline-flex"></i>edit
+                                                </a>
+                                                <a class="dropdown-item  btn btn-secondary-light" (click)="deleteFlow(dataFlow, 'dataflow')">
+                                                    <i class="fe fe-trash me-2 d-inline-flex"></i>delete
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+            
+                            </div>
+                            <div *ngIf="!showAllDataFlows && i < 11" class="card  img-shadow">
+                                <!-- <img src="./assets/images/Landingpage-images/recently-view/recent-1.jpg" class="card-img-top " alt="img"> -->
+                                <div class="card-body p-2 d-flex align-items-center justify-content-between">
+                                    <span class="avatar avatar-sm avatar-radius w-6 h-6 border">
+                                        <img
+                                            src="./assets/images/charts/post-tiled-icon.jpg" alt=""
+                                            class="avatar-radius">
+                                    </span>
+                                    <div class="dashboard-card-title">
+                                        <h5 class="card-title   mb-1 cursor-pointer" ngbTooltip="{{dataFlow.Flow_name}}"
+                                            (click)="editDataFlow(dataFlow.id)"
+                                            > {{dataFlow.Flow_name | slice:0:16}}</h5>
+                                        <p class="card-text">Modified on {{dataFlow.updated_at | date: 'yyyy-MM-dd HH:mm:ss'}} </p>
+                                    </div>
+                                    <div class="dashboard-option">
+                                        <div class="d-flex justify-content-end p-1" ngbDropdown>
+                                            <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" ngbDropdownToggle
+                                                aria-haspopup="true" aria-expanded="false" class=""><i
+                                                    class="fe fe-more-vertical fs-18 text-body-secondary"></i>
+                                            </a>
+                                            <div class="dropdown-menu" ngbDropdownMenu>
+                                                <a class="dropdown-item" (click)="editDataFlow(dataFlow.id)">
+                                                    <i class="fe fe-edit me-2 d-inline-flex"></i>edit
+                                                </a>
+                                                <a class="dropdown-item  btn btn-secondary-light" (click)="deleteFlow(dataFlow, 'dataflow')">
+                                                    <i class="fe fe-trash me-2 d-inline-flex"></i>delete
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+            
+                            </div>
+                        </div>
+                    </ng-container>
+            
+                    <div *ngIf="!showAllDataFlows && dataFlowList.length > 10" class="col-xxl-3 col-xl-3 col-lg-3 col-md-3">
+                        <div class="p-5 d-flex align-items-center justify-content-start">
+                            <div class="dashboard-card-title">
+                                <h5 class="card-title mb-1 cursor-pointer border-bottom" (click)="goToDataFlowList()"> View All 
+                                    <i class="fa fa-angle-double-right"></i> </h5>
+                                <p class="card-text"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card border p-4">
+                <div class="row">
+                    <div class="d-flex align-items-center justify-content-between border-bottom mb-3">
+                        <h6 class="fw-bold mb-1">Saved TaskPlans</h6>
+                        <div class="view-card">
+                            @if(!showAllJobFlows && jobFlowList.length !==0){
+                            <a class="">
+                                <span class="add-txt card-title me-2" (click)="showAllJobFlows=!showAllJobFlows">Show Less <i
+                                        class="fa fa-angle-double-right"> </i></span>
+                            </a>
+                            } @if(showAllJobFlows && jobFlowList.length !==0){
+                            <a class="" *ngIf="jobFlowList.length > 4">
+                                <span class="add-txt card-title me-2" (click)="showAllJobFlows=!showAllJobFlows">View More <i
+                                        class="fa fa-angle-double-right"> </i></span>
+                            </a>
+                            }
+                        </div>
+                    </div>
+                    <div *ngIf="jobFlowList.length === 0">
+                        No TaskPlans to display!
+                    </div>
+                    <ng-container *ngFor="let jobFlow of jobFlowList;let i = index">
+                        <div *ngIf="i < 11" class="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
+                            <div *ngIf="showAllJobFlows && i < 4" class="card  img-shadow mb-0">
+                                <!-- <img src="./assets/images/Landingpage-images/recently-view/recent-1.jpg" class="card-img-top " alt="img"> -->
+                                <div class="card-body p-2 d-flex align-items-center justify-content-between">
+                                    <span class="avatar avatar-sm avatar-radius w-6 h-6 border me-1">
+                                        <!-- <img  alt="product" class="avatar-radius" src="./assets/images/icons/postSQL-icon.jpg"> -->
+                                        <img
+                                            src="./assets/images/charts/post-tiled-icon.jpg" alt=""
+                                            class="avatar-radius">
+                                    </span>
+                                    <div class="dashboard-card-title">
+                                        <h5 class="card-title   mb-1 cursor-pointer" ngbTooltip="{{jobFlow.Task_name}}"
+                                            (click)="editJobFlow(jobFlow.id)"> {{jobFlow.Task_name | slice:0:11}}</h5>
+                                        <p class="card-text text-truncate">Modified on {{jobFlow.updated_at | date: 'yyyy-MM-dd HH:mm:ss'}} </p>
+                                    </div>
+                                    <div class="dashboard-option">
+                                        <div class="d-flex justify-content-end p-1" ngbDropdown>
+                                            <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" ngbDropdownToggle
+                                                aria-haspopup="true" aria-expanded="false" class=""><i
+                                                    class="fe fe-more-vertical fs-18 text-body-secondary"></i>
+                                            </a>
+                                            <div class="dropdown-menu" ngbDropdownMenu>
+                                                <a class="dropdown-item" (click)="editJobFlow(jobFlow.id)">
+                                                    <i class="fe fe-edit me-2 d-inline-flex"></i>edit
+                                                </a>
+                                                <a class="dropdown-item  btn btn-secondary-light" (click)="deleteFlow(jobFlow, 'jobflow')">
+                                                    <i class="fe fe-trash me-2 d-inline-flex"></i>delete
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+            
+                            </div>
+                            <div *ngIf="!showAllJobFlows && i < 11" class="card  img-shadow">
+                                <!-- <img src="./assets/images/Landingpage-images/recently-view/recent-1.jpg" class="card-img-top " alt="img"> -->
+                                <div class="card-body p-2 d-flex align-items-center justify-content-between">
+                                    <span class="avatar avatar-sm avatar-radius w-6 h-6 border">
+                                        <img
+                                            src="./assets/images/charts/post-tiled-icon.jpg" alt=""
+                                            class="avatar-radius">
+                                    </span>
+                                    <div class="dashboard-card-title">
+                                        <h5 class="card-title   mb-1 cursor-pointer" ngbTooltip="{{jobFlow.Task_name}}"
+                                            (click)="editJobFlow(jobFlow.id)"
+                                            > {{jobFlow.Task_name | slice:0:16}}</h5>
+                                        <p class="card-text">Modified on {{jobFlow.updated_at | date: 'yyyy-MM-dd HH:mm:ss'}} </p>
+                                    </div>
+                                    <div class="dashboard-option">
+                                        <div class="d-flex justify-content-end p-1" ngbDropdown>
+                                            <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" ngbDropdownToggle
+                                                aria-haspopup="true" aria-expanded="false" class=""><i
+                                                    class="fe fe-more-vertical fs-18 text-body-secondary"></i>
+                                            </a>
+                                            <div class="dropdown-menu" ngbDropdownMenu>
+                                                <a class="dropdown-item" (click)="editJobFlow(jobFlow.id)">
+                                                    <i class="fe fe-edit me-2 d-inline-flex"></i>edit
+                                                </a>
+                                                <a class="dropdown-item  btn btn-secondary-light" (click)="deleteFlow(jobFlow, 'jobflow')">
+                                                    <i class="fe fe-trash me-2 d-inline-flex"></i>delete
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+            
+                            </div>
+                        </div>
+                    </ng-container>
+            
+                    <div *ngIf="!showAllJobFlows && jobFlowList.length > 10" class="col-xxl-3 col-xl-3 col-lg-3 col-md-3">
+                        <div class="p-5 d-flex align-items-center justify-content-start">
+                            <div class="dashboard-card-title">
+                                <h5 class="card-title mb-1 cursor-pointer border-bottom" (click)="goToJobFlowList()"> View All 
+                                    <i class="fa fa-angle-double-right"></i> </h5>
+                                <p class="card-text"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card border p-4">
+                <div class="row">
+                    <div class="d-flex align-items-center justify-content-between border-bottom mb-3">
+                        <h6 class="fw-bold mb-1">Saved Monitors</h6>
+                        <div class="view-card">
+                            @if(!showAllMonitors && monitorsList.length !==0){
+                            <a class="">
+                                <span class="add-txt card-title me-2" (click)="showAllMonitors=!showAllMonitors">Show Less <i
+                                        class="fa fa-angle-double-right"> </i></span>
+                            </a>
+                            } @if(showAllMonitors && monitorsList.length !==0){
+                            <a class="" *ngIf="monitorsList.length > 4">
+                                <span class="add-txt card-title me-2" (click)="showAllMonitors=!showAllMonitors">View More <i
+                                        class="fa fa-angle-double-right"> </i></span>
+                            </a>
+                            }
+                        </div>
+                    </div>
+                    <div *ngIf="monitorsList.length === 0">
+                        No Monitors to display!
+                    </div>
+                    <ng-container *ngFor="let monitor of monitorsList;let i = index">
+                        <div *ngIf="i < 11" class="col-xxl-3 col-xl-3 col-lg-6 col-md-6">
+                            <div *ngIf="showAllMonitors && i < 4" class="card  img-shadow mb-0">
+                                <!-- <img src="./assets/images/Landingpage-images/recently-view/recent-1.jpg" class="card-img-top " alt="img"> -->
+                                <div class="card-body p-2 d-flex align-items-center">
+                                    <span class="avatar avatar-sm avatar-radius w-6 h-6 border me-1">
+                                        <!-- <img  alt="product" class="avatar-radius" src="./assets/images/icons/postSQL-icon.jpg"> -->
+                                        <img
+                                            src="./assets/images/charts/post-tiled-icon.jpg" alt=""
+                                            class="avatar-radius">
+                                    </span>
+                                    <div class="dashboard-card-title">
+                                        <h5 class="card-title   mb-1 cursor-pointer" ngbTooltip="{{monitor.description}}"
+                                            (click)="goToMonitor(monitor.dag_id)"> {{monitor.description | slice:0:11}}</h5>
+                                        <p class="card-text text-truncate" [ngbTooltip]="monitor.last_parsed_time | date:'yyyy-MM-dd HH:mm:ss'">Latest Run on {{monitor.last_parsed_time | date:'yyyy-MM-dd HH:mm:ss'}} </p>
+                                    </div>
+                                    <!-- <div class="dashboard-option">
+                                        <div class="d-flex justify-content-end p-1" ngbDropdown>
+                                            <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" ngbDropdownToggle
+                                                aria-haspopup="true" aria-expanded="false" class=""><i
+                                                    class="fe fe-more-vertical fs-18 text-body-secondary"></i>
+                                            </a>
+                                            <div class="dropdown-menu" ngbDropdownMenu>
+                                                <a class="dropdown-item"><i class="fe fe-edit me-2 d-inline-flex" (click)="editDataFlow(monitor.dag_id)"></i>
+                                                    edit</a>
+                                            </div>
+                                        </div>
+                                    </div> -->
+                                </div>
+            
+                            </div>
+                            <div *ngIf="!showAllMonitors && i < 11" class="card  img-shadow">
+                                <!-- <img src="./assets/images/Landingpage-images/recently-view/recent-1.jpg" class="card-img-top " alt="img"> -->
+                                <div class="card-body p-2 d-flex align-items-center">
+                                    <span class="avatar avatar-sm avatar-radius w-6 h-6 border">
+                                        <img
+                                            src="./assets/images/charts/post-tiled-icon.jpg" alt=""
+                                            class="avatar-radius">
+                                    </span>
+                                    <div class="dashboard-card-title">
+                                        <h5 class="card-title   mb-1 cursor-pointer" ngbTooltip="{{monitor.description}}"
+                                            (click)="goToMonitor(monitor.dag_id)"
+                                            > {{monitor.description | slice:0:16}}</h5>
+                                        <p class="card-text" [ngbTooltip]="monitor.last_parsed_time | date:'yyyy-MM-dd HH:mm:ss'">Latest Run on {{monitor.last_parsed_time | date:'yyyy-MM-dd HH:mm:ss'}} </p>
+                                    </div>
+                                    <!-- <div class="dashboard-option">
+                                        <div class="d-flex justify-content-end p-1" ngbDropdown>
+                                            <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" ngbDropdownToggle
+                                                aria-haspopup="true" aria-expanded="false" class=""><i
+                                                    class="fe fe-more-vertical fs-18 text-body-secondary"></i>
+                                            </a>
+                                            <div class="dropdown-menu" ngbDropdownMenu>
+                                               <a class="dropdown-item"><i class="fe fe-edit me-2 d-inline-flex" (click)="editDataFlow(monitor.dag_id)"></i>
+                                                    edit</a>
+                                            </div>
+                                        </div>
+                                    </div> -->
+                                </div>
+            
+                            </div>
+                        </div>
+                    </ng-container>
+            
+                    <div *ngIf="!showAllMonitors && monitorsList.length > 10" class="col-xxl-3 col-xl-3 col-lg-3 col-md-3">
+                        <div class="p-5 d-flex align-items-center justify-content-start">
+                            <div class="dashboard-card-title">
+                                <h5 class="card-title mb-1 cursor-pointer border-bottom" (click)="goToMonitorList()"> View All 
+                                    <i class="fa fa-angle-double-right"></i> </h5>
+                                <p class="card-text"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3">
+            <div class="card border" style="max-height: 450px;">
+                <div class="card-header d-flex justify-content-between">
+                    <div class="card-title">Saved Connections</div>
+                    <a class="" (click)="goToConnectionList()">
+                        <span class="add-txt me-2">View All <i class="fa fa-angle-double-right"> </i></span>
+                    </a>
+                </div>
+                <div class="card-body mb-0 p-0 ">
+                    <div class="table-responsive">
+                        <table class="table  text-nowrap text-md-nowrap mb-0">
+                            <tbody>
+                                @for(database of connectionList;track database; let i = $index){
+                                <tr *ngIf="i < 11">
+                                    <td>
+                                        <a class="card-title" 
+                                            ngbTooltip="{{database.display_name}}"> {{database.display_name | slice:0:15}}</a>
+                                    </td>
+                                    <td *ngIf="database.server_type === 'POSTGRESQL'">
+                                        <img alt="product" src="./assets/images/icons/postSQL-icon.jpg"
+                                            class="w-5 h-5 border me-2">{{database.server_type | lowercase}}
+                                    </td>
+                                    <td *ngIf="database.server_type === 'CSV'">
+                                        <img alt="product" src="./assets/images/icons/excel-icon.jpg" class="w-5 h-5 border me-2">{{database.server_type
+                                        | lowercase}}
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ROW-1 CLOSED-->
+</div>

@@ -1,0 +1,164 @@
+.table td { font-size: 14px;}
+.table thead th {color: #fff;font-size: 14px;}
+.query-text-h {outline: none; border: none; width: 100%; height: 150px; min-height: 150px; max-height: 150px; overflow-y: auto; }
+.hide-show-btn { width: fit-content; cursor: pointer; position: relative; right: 13px; top: 230px; z-index: 9; padding: 5px 9px; border-radius: 15px; }
+.plus-icon{ font-size: 16px;}
+.plug-icon { margin-right: 12px !important; }
+.connections-layer-h {  height: 100%;  overflow: auto; border: 0px !important; box-shadow: none;}
+.cursor-move {cursor: move;}
+.table-width {width: auto;}
+.image-width {width: 5%;}
+.dropdown-toggle::after { display:none; }
+.plus-icon-size { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.custom-dropdown.show {display: flex !important; flex-direction: column !important;}
+.transformations-dropdown{ display: inline-block;text-align: center !important;}
+.nested-dropdown{overflow-y: scroll;}
+ul.DropDownWidth.show {width: calc(100% + 66px);}
+// .customsql-result-preview-h{ height: 349px; }
+.customsql-result-preview-h {
+  height: 349px;
+  position: relative;
+  overflow: auto;
+}
+
+.customsql-result-preview-h .resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: row-resize;
+  z-index: 10;
+  background: #ccc;
+}
+.customsql-result-preview-h .resize-handle:hover {
+  background-color: var(--primary-color);
+}
+.container-vertical {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* or 100% of parent */
+  overflow: hidden;
+}
+
+.top-pane {
+  flex-grow: 1;
+  overflow: auto;
+}
+.resizable-bottom {
+  min-height: 48px;
+  height: 349px; /* starting height */
+  max-height: 90%; /* or calculate dynamically in TS if needed */
+  position: relative;
+  // background: #f0f0f0;
+}
+.Result-preview-table-sticky{ position: sticky;top: -1px; background-color: var(--primary-color); z-index: 1000;}
+.tables-modal{ height: 300px; overflow: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.tables-preview{ overflow-y: auto;height: 293px; }
+.ng-select-disabled { background-color: #f5f5f5; opacity: 0.6; }
+.table-responsive-height { height: 26rem; }
+
+a.TabShadow.nav-link.active {
+    color: var(--primary-color);
+    box-shadow: 0px -5px 5px 1px rgb(170 167 167 / 12%);
+  }
+
+
+.drag-drawflow { line-height: 50px; padding-left: 20px; cursor: pointer; user-select: none; }
+.drag-drawflow:hover { background-color: var(--primary-color); }
+#drawflow { position: relative; height: calc(100vh - 80px); -ms-overflow-style: none; scrollbar-width: none;}
+#drawflow::-webkit-scrollbar { display: none; }
+.drawflow-width-half { width: calc(100vw - 420px); }
+.drawflow-width-full { width: calc(100vw - 274px); }
+.drawflow-image { width: 16px; height: 16px; }
+::ng-deep .drawflow .drawflow-node { width: 75px; height: 75px; border-radius: 8px; background-color: white; text-align: center; } 
+::ng-deep .drawflow .drawflow-node .drawflow_content_node { display: flex; align-items: center; justify-content: center; height: 100%; }
+::ng-deep .drawflow .drawflow-node .node-icon { width: 28px; height: 28px; user-select: none; pointer-events: none; }
+::ng-deep .drawflow .drawflow-node .node-label { font-size: 12px; margin-top: 8px; color: #333; }
+::ng-deep .drawflow .drawflow-node:hover { cursor: pointer; } 
+::ng-deep .drawflow .drawflow-node.selected{background: #1597cf}
+::ng-deep .drawflow .drawflow-node.selected .node-label{color: #fff;}
+.drawflow .connection .main-path { stroke: #4ea9ff; stroke-width: 3px; }
+.node-table-left { height: 100%; width: 221px; }
+.node-table-right { width: 100%; height: 100%; overflow: auto;}
+.iconProperties { padding: 4px 4px; }
+textarea { width: 330px; overflow: auto; resize: none; border: 1px solid #d8d8d8;}
+::ng-deep .drawflow .drawflow-node .node-status { font-size: 10px; text-align: center; border-radius: 4px; }
+::ng-deep .drawflow .drawflow-node .node-status-waiting { background-color: #f3ec26; color: white; }
+::ng-deep .drawflow .drawflow-node .node-status-scheduled { background-color: #727475; color: white; }
+::ng-deep .drawflow .drawflow-node .node-status-queued { background-color: #5BC0DE; color: white; }
+::ng-deep .drawflow .drawflow-node .node-status-running { background-color: #5044f3; color: white; }
+::ng-deep .drawflow .drawflow-node .node-status-success { background-color: #1fee1f; color: white; }
+::ng-deep .drawflow .drawflow-node .node-status-failed { background-color: #e3403a; color: white; }
+::ng-deep .drawflow .drawflow-node .node-status-upstream_failed { background-color: #f0841e; color: white; font-size: 9px !important; }
+::ng-deep .drawflow .drawflow-node .node-status-removed { background-color: #4E5D6C; color: white; }
+.selected-row {background-color: var(--primary-color) !important;}
+.selected-row-data {color: #fff !important;}
+
+.right-chevron-width {width: 30px;}
+.icon-font-size {font-size: 20px;}
+.label-font-weight {font-weight: bold;}
+.search-width-height {max-width: 200px; height: 29px;}
+.tab-content-width {width: 100%;}
+
+.bar-zoom {
+    float: right;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    font-size: 20px;
+    color: var(--primary-color);
+    padding: 5px 10px;
+    background: #555555;
+    border-radius: 4px;
+    border-right: 1px solid var(--border-color);
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background: rgba(255, 255, 255, 0.9);
+  }
+  .bar-zoom svg {
+    cursor: pointer;
+    padding-left: 10px;
+  }
+  .bar-zoom svg:nth-child(1) {
+    padding-left: 0px;
+  }
+
+  .table-collapse {
+    height: 48px !important;
+    overflow: hidden !important;
+  }
+  
+  .container-vertical {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* or fixed height */
+    overflow: hidden;
+  }
+  
+  .top-pane {
+    flex-grow: 1;
+    min-height: 48px;
+    overflow: auto;
+  }
+  
+  .resizable-bottom {
+    position: relative;
+    min-height: 48px;
+    height: 200px;
+    flex-shrink: 0;
+    overflow: auto;
+  }
+  
+  .resize-handle {
+    height: 6px;
+    // background: #ccc;
+    cursor: row-resize;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+  }
+  
