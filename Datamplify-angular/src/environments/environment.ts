@@ -20,7 +20,7 @@ export const environment = {
     // QA server
     // apiUrl:'http://13.52.99.241:80/v1',
         // apiUrl:'https://api.qa.insightapps.ai/v1',
-        airflowApiUrl: 'http://202.65.155.123:8080',
+        airflowApiUrl: 'http://127.0.0.1:8001',
         // airflowApiUrl: 'http://3.101.147.3:8080',
     // demo url
       // apiUrl:'https://api.insightapps.ai/v1'
@@ -28,7 +28,8 @@ export const environment = {
     //datamplify dev
     // apiUrl: 'http://172.16.17.159:80/v1',
     // apiUrl: 'http://172.16.16.135:8000/v1',
-    apiUrl: 'http://202.65.155.123:80/v1'
+   // apiUrl: 'http://202.65.155.123:80/v1'
+      apiUrl: 'http://127.0.0.1:8000/v1'
 
 };
 

@@ -11,8 +11,8 @@ from airflow.utils.trigger_rule import TriggerRule
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.state import State
 import traceback
-from airflow.utils import timezone
-from datetime import timezone,datetime
+from airflow.utils import timezone as airflow_tz
+from datetime import timezone as dt_timezone
 from airflow.exceptions import AirflowFailException
 
 
@@ -26,11 +26,11 @@ from airflow.exceptions import AirflowFailException
 # 4.Filter
 # 5.Extraction
 import sys
-sys.path.insert(0, "/var/www/Datamplify")
+sys.path.insert(0, "/opt/airflow/project")
 
 from django_setup import setup_django
 setup_django()
-  # 👈 Ensures Django is ready
+  # Ensures Django is ready
 
 from Datamplify import settings 
 from TaskPlan.utils import run_sql_commands 
@@ -40,7 +40,6 @@ from Monitor.models import RunHistory
 
 
 GLOBAL_PARAM_HOLDER = '__global_param_store__'
-
 
 
 # def check_dag_status(**context):
@@ -75,7 +74,7 @@ def cleanup_on_success(tasks_list,user_id,hierarchy_id,**kwargs):
             with engine.connect() as cursor:
                 cursor.execute(f'DROP TABLE IF EXISTS "{schema}"."{table_name}"')
 import re
-now = datetime.now(timezone.utc)
+now = datetime.now(dt_timezone.utc)
 
 def fail_task(**kwargs):
     raise AirflowFailException("Upstream task failed — DAG marked failed.")
@@ -437,14 +436,18 @@ def task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map
 
 
 def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
+    # Ensure the DAG ID matches the FlowBoard ID
+    actual_dag_id = str(dag_id)
+    print(f"[INFO] Creating DAG with ID: {actual_dag_id}")
+    
     dag = DAG(
-        dag_id,
+        actual_dag_id,
         default_args={
             'owner': 'airflow',
-            'start_date': timezone.datetime(2024, 1, 1),  # timezone-aware
+            'start_date': airflow_tz.datetime(2024, 1, 1),  # timezone-aware
             'retries': 0
         },
-        schedule=None,  # ✅ correct param
+        schedule=None,  # correct param
         catchup=False,
         description=config.get('flow_name', 'No Description'),
         is_paused_upon_creation=False,
@@ -530,13 +533,44 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
                 task_map[param['dependent_task']] >> sql_task  
             else:
                 sql_task  
-    globals()[dag_id] = dag
-    return dag
+        globals()[dag_id] = dag
+        return dag
 
-from django.db import connection
+# Django is optional inside the Airflow container. Fallback gracefully if unavailable.
+try:
+    from django.db import connection
+    DJANGO_AVAILABLE = True
+except Exception:
+    connection = None
+    DJANGO_AVAILABLE = False
 
 def fetch_and_lock_dag_configs(limit=100):
-    CONFIG_DIR = '/var/www/Configs/FlowBoard'
+    # Always use Docker path since Airflow runs in Docker container
+    # Django writes to BASE_DIR/Configs/FlowBoard where BASE_DIR is mounted at /opt/airflow/project
+    CONFIG_DIR = '/opt/airflow/project/Configs/FlowBoard'
+    print(f"[INFO] Looking for FlowBoard configs in: {CONFIG_DIR}")
+    # Ensure the directory exists; if not, create and return no configs to avoid Broken DAG
+    if not os.path.isdir(CONFIG_DIR):
+        try:
+            os.makedirs(CONFIG_DIR, exist_ok=True)
+            print(f"[INFO] Config directory {CONFIG_DIR} not found. Created it. No configs to parse yet.")
+        except Exception as e:
+            print(f"[WARN] Could not create {CONFIG_DIR}: {e}")
+        return []
+    # Diagnostic: list discovered JSON files (max 20)
+    try:
+        discovered = []
+        for root, dirs, files in os.walk(CONFIG_DIR):
+            for f in files:
+                if f.lower().endswith('.json'):
+                    discovered.append(os.path.join(root, f))
+        print(f"[INFO] FlowBoard config discovery: found {len(discovered)} json file(s) under {CONFIG_DIR}")
+        for p in discovered[:20]:
+            print(f"[INFO] - {p}")
+        if len(discovered) > 20:
+            print(f"[INFO] ... and {len(discovered)-20} more")
+    except Exception as e:
+        print(f"[WARN] Failed to enumerate configs under {CONFIG_DIR}: {e}")
     # try:
     #     with connection.cursor() as cursor:
     #         cursor.execute("""
@@ -583,6 +617,9 @@ def fetch_and_lock_dag_configs(limit=100):
                 try:
                     with open(filepath) as f:
                         config = json.load(f)
+                        # Ensure the config has the correct FlowBoard ID
+                        config['flow_id'] = flow_id
+                        print(f"[INFO] Processing config for FlowBoard ID: {flow_id}")
                         yield flow_id, config
                 except Exception as e:
                     print(f"[ERROR] Failed to load {filepath}: {e}")
@@ -606,24 +643,27 @@ else:
         
     for dag_id, config in dag_configs:
         try:
-            print(f"[INFO] Attempting DAG generation for {dag_id}")
+            # Ensure we're using the correct DAG ID
+            actual_dag_id = str(dag_id)
+            print(f"[INFO] Attempting DAG generation for {actual_dag_id}")
             dag = generate_dynamic_dag(
-                dag_id=str(dag_id),
-                user_id=uuid.UUID(config['user_id']),
+                dag_id=actual_dag_id,
+                user_id=str(config.get('user_id')),
                 user_name=config['username'],
                 config=config
             )
 
             if not isinstance(dag, DAG):
-                print(f"[ERROR] {dag_id}: Not a DAG instance: {type(dag)}")
+                print(f"[ERROR] {actual_dag_id}: Not a DAG instance: {type(dag)}")
                 continue
             if not dag.dag_id:
-                print(f"[ERROR] {dag_id}: dag_id is None")
+                print(f"[ERROR] {actual_dag_id}: dag_id is None")
                 continue
 
             # Optional debug dump
-
+            print(f"[INFO] Storing DAG in globals with key: {dag.dag_id}")
             globals()[dag.dag_id] = dag
+            print(f"[INFO] Successfully created DAG with ID: {dag.dag_id}")
         except Exception as e:
-            print(f"[EXCEPTION] DAG creation failed for {dag_id}: {e}")
+            print(f"[EXCEPTION] DAG creation failed for {actual_dag_id}: {e}")
             traceback.print_exc()

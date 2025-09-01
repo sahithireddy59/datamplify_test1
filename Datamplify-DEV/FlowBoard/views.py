@@ -17,6 +17,10 @@ from Datamplify import settings
 from pytz import utc
 import os,json,requests,uuid
 from datetime import timezone
+import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -61,6 +65,17 @@ class FlowBoard(APIView):
                     DrawFlow=file_path['file_url'],
                     user_id = user
                 )
+                
+                # Auto-trigger DAG creation and execution
+                try:
+                    trigger_result = self._auto_trigger_dag(Flow_id, request)
+                    if trigger_result.get('success'):
+                        logger.info(f"Auto-triggered DAG for FlowBoard {Flow_id}: {trigger_result['message']}")
+                    else:
+                        logger.warning(f"Auto-trigger failed for FlowBoard {Flow_id}: {trigger_result['message']}")
+                except Exception as e:
+                    logger.error(f"Auto-trigger error for FlowBoard {Flow_id}: {str(e)}")
+                
                 return Response({'message':'Saved SucessFully','Flow_Board_id':id.id},status=status.HTTP_200_OK)
             else:
                 return Response({'message':'Serializer Error'},status=status.HTTP_400_BAD_REQUEST)
@@ -92,13 +107,12 @@ class FlowBoard(APIView):
                 flow['username'] = user.username
                 flow['dag_id'] = Flow_data.Flow_id
                 flow['flow_name'] = flow_name
-                configs_dir = f'{settings.config_dir}/FlowBoard/{str(user_id)}'
+                configs_dir = os.path.join(settings.config_dir, 'FlowBoard', str(user_id))
+                os.makedirs(configs_dir, exist_ok=True)
                 file_path = os.path.join(configs_dir, f'{Flow_data.Flow_id}.json')
-                new_file_path = os.path.join(configs_dir, f'{Flow_data.Flow_id}.json')
                 data = flow
                 with open(file_path, 'w') as f:
                     json.dump(data, f, indent=4,cls=UUIDEncoder)
-                os.rename(file_path,new_file_path)
                 datasrc_key = Flow_data.DrawFlow.split('FlowBoard/')[1]
                 file_data = drawflow.read().decode('utf-8')  
                 file_path = file_save_1(file_data,'',Flow_data.Flow_id,'FlowBoard',f'Datamplify/FlowBoard/{datasrc_key}')
@@ -108,6 +122,17 @@ class FlowBoard(APIView):
                     updated_at=datetime.now(utc),
                     user_id = user
                 )                
+                
+                # Auto-trigger DAG update and execution
+                try:
+                    trigger_result = self._auto_trigger_dag(Flow_data.Flow_id, request)
+                    if trigger_result.get('success'):
+                        logger.info(f"Auto-triggered DAG for updated FlowBoard {Flow_data.Flow_id}: {trigger_result['message']}")
+                    else:
+                        logger.warning(f"Auto-trigger failed for updated FlowBoard {Flow_data.Flow_id}: {trigger_result['message']}")
+                except Exception as e:
+                    logger.error(f"Auto-trigger error for updated FlowBoard {Flow_data.Flow_id}: {str(e)}")
+                
                 return Response({'message':'updated SucessFully','Flow_Board_id':str(id)},status=status.HTTP_200_OK)
             else:
                     return Response({'message':'Serializer Error'},status=status.HTTP_400_BAD_REQUEST)
@@ -115,6 +140,73 @@ class FlowBoard(APIView):
                 return Response({'message':tok1['message']},status=status.HTTP_401_UNAUTHORIZED)
         
 
+
+    def _auto_trigger_dag(self, dag_id, request):
+        """
+        Automatically trigger DAG creation and execution after FlowBoard save/update.
+        Mirrors logic used by Flow_List._auto_trigger_dag but scoped to this class
+        so calls like self._auto_trigger_dag(...) work.
+
+        Args:
+            dag_id (str): The FlowBoard ID to use as DAG ID
+            request: The original HTTP request for auth forwarding
+        Returns:
+            dict: Result with success status and message
+        """
+        try:
+            # Wait briefly for Airflow to pick up the new config file
+            time.sleep(2)
+
+            # Build internal URL to Monitor trigger endpoint
+            scheme = 'https' if request.is_secure() else 'http'
+            base = f"{scheme}://{request.get_host()}"
+            # Important: do NOT include trailing slash before query params, since APPEND_SLASH=False
+            trigger_url = f"{base}/v1/monitor/Trigger/{dag_id}?type=flowboard"
+
+            # Forward auth header if present
+            headers = {}
+            if 'Authorization' in request.headers:
+                headers['Authorization'] = request.headers.get('Authorization')
+
+            # Retry trigger with timeout for DAG registration
+            max_wait_seconds = 120
+            interval = 2
+            deadline = time.time() + max_wait_seconds
+
+            while time.time() <= deadline:
+                try:
+                    resp = requests.post(trigger_url, headers=headers, timeout=10)
+                    if resp.status_code in [200, 201]:
+                        return {
+                            'success': True,
+                            'message': f'DAG {dag_id} triggered successfully',
+                            'response': resp.json() if resp.content else {}
+                        }
+                    elif resp.status_code == 404:
+                        # DAG not found yet, wait and retry
+                        logger.info(f"DAG {dag_id} not found yet, retrying...")
+                        time.sleep(interval)
+                        continue
+                    else:
+                        return {
+                            'success': False,
+                            'message': f'Trigger failed with status {resp.status_code}: {resp.text}'
+                        }
+                except requests.RequestException as e:
+                    logger.warning(f"Trigger request failed for {dag_id}: {e}")
+                    time.sleep(interval)
+                    continue
+
+            return {
+                'success': False,
+                'message': f'DAG {dag_id} trigger timed out after {max_wait_seconds}s'
+            }
+
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Auto-trigger error: {str(e)}'
+            }
 
 class FlowOperation(APIView):  
     @csrf_exempt
@@ -179,6 +271,111 @@ class FlowOperation(APIView):
 
 
 
+class FlowRun(APIView):
+    @csrf_exempt
+    @transaction.atomic()
+    def post(self, request, id):
+        """
+        Ensure the FlowBoard JSON exists on disk (create/update from payload if provided)
+        and trigger the DAG via Monitor endpoint.
+        """
+        tok1 = token_function(request)
+        if tok1["status"] != 200:
+            return Response({'message': tok1['message']}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user_id = tok1['user_id']
+        # Validate ownership and get DAG id
+        if not flow_model.FlowBoard.objects.filter(id=id, user_id=user_id).exists():
+            return Response({'message': 'Flow not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        data = flow_model.FlowBoard.objects.get(id=id, user_id=user_id)
+        dag_id = data.Flow_id
+        user = auth_models.UserProfile.objects.get(id=user_id)
+
+        # Ensure config JSON exists where Airflow reads it
+        configs_dir = os.path.join(settings.config_dir, 'FlowBoard', str(user_id))
+        file_path = os.path.join(configs_dir, f'{dag_id}.json')
+        os.makedirs(configs_dir, exist_ok=True)
+
+        # If a flow_plan payload is provided, write/overwrite the JSON so Airflow can parse the latest graph
+        incoming_plan = request.data.get('flow_plan') if isinstance(request.data, dict) else None
+        if incoming_plan:
+            try:
+                # Normalize minimal required keys
+                incoming_plan['dag_id'] = dag_id
+                incoming_plan['flow_name'] = data.Flow_name
+                incoming_plan['user_id'] = str(user_id)
+                incoming_plan['username'] = user.username
+                with open(file_path, 'w') as f:
+                    json.dump(incoming_plan, f, indent=4, cls=UUIDEncoder)
+            except Exception as e:
+                return Response({'message': f'Failed to write flow plan: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If still missing and no payload provided, return helpful error
+        if not os.path.exists(file_path):
+            return Response({
+                'message': 'Flow definition missing. Provide flow_plan in request or save the flow before running.',
+                'expected_path': file_path
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Preflight: wait briefly until Airflow registers the DAG (poll API)
+        try:
+            dag_check_url = f"{settings.airflow_host}/api/v1/dags/{dag_id}"
+            auth = (settings.airflow_username, settings.airflow_password)
+            max_wait = 60
+            end = time.time() + max_wait
+            while time.time() <= end:
+                try:
+                    r = requests.get(dag_check_url, auth=auth, timeout=5)
+                    if r.status_code == 200:
+                        break
+                except Exception:
+                    pass
+                time.sleep(2)
+        except Exception:
+            # Non-fatal; we still attempt trigger with retry below
+            pass
+
+        # Build internal URL to existing Monitor trigger endpoint
+        scheme = 'https' if request.is_secure() else 'http'
+        base = f"{scheme}://{request.get_host()}"
+        # Important: APPEND_SLASH=False, route is defined without trailing slash
+        trigger_url = f"{base}/v1/monitor/Trigger/{dag_id}?type=flowboard"
+
+        try:
+            # Forward auth header if present (optional)
+            headers = {}
+            if 'Authorization' in request.headers:
+                headers['Authorization'] = request.headers.get('Authorization')
+
+            # Retry trigger for a short window to allow Airflow to register the DAG
+            max_wait_seconds = 120
+            interval = 3
+            deadline = time.time() + max_wait_seconds
+            last_body = {'message': 'No response'}
+            last_status = 502
+
+            while time.time() <= deadline:
+                resp = requests.post(trigger_url, headers=headers, timeout=10)
+                try:
+                    body = resp.json()
+                except Exception:
+                    body = {'message': resp.text}
+
+                # Success or non-404 -> return immediately
+                if resp.status_code != 404:
+                    return Response(body, status=resp.status_code)
+
+                # If 404 DAG not found, wait and retry
+                last_body = body
+                last_status = resp.status_code
+                time.sleep(interval)
+
+            # If we exhausted retries, return the last 404 body
+            return Response(last_body, status=last_status)
+        except requests.RequestException as e:
+            return Response({'message': f'Trigger request failed: {e}'}, status=status.HTTP_502_BAD_GATEWAY)
+
 class Flow_List(APIView):
     @csrf_exempt
     @transaction.atomic()
@@ -213,3 +410,70 @@ class Flow_List(APIView):
 
         else:
            return Response({'message':tok1['message']},status=status.HTTP_401_UNAUTHORIZED)
+    
+    def _auto_trigger_dag(self, dag_id, request):
+        """
+        Automatically trigger DAG creation and execution after FlowBoard save/update.
+        
+        Args:
+            dag_id (str): The FlowBoard ID to use as DAG ID
+            request: The original HTTP request for auth forwarding
+            
+        Returns:
+            dict: Result with success status and message
+        """
+        try:
+            # Wait briefly for Airflow to pick up the new config file
+            time.sleep(2)
+            
+            # Build internal URL to Monitor trigger endpoint
+            scheme = 'https' if request.is_secure() else 'http'
+            base = f"{scheme}://{request.get_host()}"
+            trigger_url = f"{base}/v1/monitor/Trigger/{dag_id}?type=flowboard"
+            
+            # Forward auth header if present
+            headers = {}
+            if 'Authorization' in request.headers:
+                headers['Authorization'] = request.headers.get('Authorization')
+            
+            # Retry trigger with timeout for DAG registration
+            max_wait_seconds = 30
+            interval = 2
+            deadline = time.time() + max_wait_seconds
+            
+            while time.time() <= deadline:
+                try:
+                    resp = requests.post(trigger_url, headers=headers, timeout=10)
+                    
+                    if resp.status_code in [200, 201]:
+                        return {
+                            'success': True,
+                            'message': f'DAG {dag_id} triggered successfully',
+                            'response': resp.json() if resp.content else {}
+                        }
+                    elif resp.status_code == 404:
+                        # DAG not found yet, wait and retry
+                        logger.info(f"DAG {dag_id} not found yet, retrying...")
+                        time.sleep(interval)
+                        continue
+                    else:
+                        return {
+                            'success': False,
+                            'message': f'Trigger failed with status {resp.status_code}: {resp.text}'
+                        }
+                        
+                except requests.RequestException as e:
+                    logger.warning(f"Trigger request failed for {dag_id}: {e}")
+                    time.sleep(interval)
+                    continue
+            
+            return {
+                'success': False,
+                'message': f'DAG {dag_id} trigger timed out after {max_wait_seconds}s'
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Auto-trigger error: {str(e)}'
+            }

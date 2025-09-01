@@ -9,9 +9,14 @@ from airflow.providers.smtp.operators.smtp import EmailOperator
 from airflow.sensors.python import PythonSensor
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.utils.task_group import TaskGroup
-from Monitor.models import RunHistory
 from datetime import timezone,datetime
 from airflow.exceptions import AirflowFailException
+
+# Setup Django before importing models
+from django_setup import setup_django
+setup_django()
+
+from Monitor.models import RunHistory
 
 
 
@@ -512,7 +517,15 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
 
 
 def fetch_and_lock_dag_configs(limit=100):
-    CONFIG_DIR = '/var/www/Configs/TaskPlan'
+    CONFIG_DIR = '/opt/airflow/project/Configs/TaskPlan'
+    # Ensure the directory exists; if not, create and return no configs to avoid Broken DAG
+    if not os.path.isdir(CONFIG_DIR):
+        try:
+            os.makedirs(CONFIG_DIR, exist_ok=True)
+            print(f"[INFO] Config directory {CONFIG_DIR} not found. Created it. No configs to parse yet.")
+        except Exception as e:
+            print(f"[WARN] Could not create {CONFIG_DIR}: {e}")
+        return []
     # try:
     #     with connection.cursor() as cursor:
     #         cursor.execute("""

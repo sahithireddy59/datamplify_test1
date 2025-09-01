@@ -1,0 +1,81 @@
+{
+    "dag_name": "test3",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_dim_taxon_genus",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "dim_taxon_genus",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "taxon_id",
+                    "integer",
+                    "taxon_id",
+                    "integer"
+                ],
+                [
+                    "kingdom",
+                    "character varying",
+                    "kingdom",
+                    "character varying"
+                ],
+                [
+                    "phylum",
+                    "character varying",
+                    "phylum",
+                    "character varying"
+                ],
+                [
+                    "class_1",
+                    "character varying",
+                    "class_1",
+                    "character varying"
+                ],
+                [
+                    "order_1",
+                    "character varying",
+                    "order_1",
+                    "character varying"
+                ],
+                [
+                    "family_1",
+                    "character varying",
+                    "family_1",
+                    "character varying"
+                ],
+                [
+                    "genus",
+                    "character varying",
+                    "genus",
+                    "character varying"
+                ]
+            ]
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_dim_taxon_test",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "dim_taxon_test",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "SRC_dim_taxon_genus"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_dim_taxon_genus",
+            "TGT_dim_taxon_test"
+        ]
+    ],
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d",
+    "username": "sahithi12",
+    "dag_id": "127001-20250822055501-2",
+    "flow_name": "test3"
+}

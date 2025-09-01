@@ -4,6 +4,6 @@ from django.apps import apps
 
 def setup_django():
     if not apps.ready:
-        sys.path.insert(0, "/var/www/Datamplify")
+        sys.path.insert(0, "/opt/airflow/project")
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Datamplify.settings")
         django.setup()

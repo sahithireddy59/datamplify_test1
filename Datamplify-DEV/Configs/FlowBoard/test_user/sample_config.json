@@ -1,0 +1,9 @@
+{
+  "dag_id": "test_flowboard_dag",
+  "user_id": "test_user",
+  "username": "test_user",
+  "description": "Test FlowBoard DAG",
+  "schedule_interval": null,
+  "start_date": "2024-01-01",
+  "tasks": []
+}

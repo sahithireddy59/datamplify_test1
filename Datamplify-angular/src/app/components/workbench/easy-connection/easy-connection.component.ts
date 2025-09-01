@@ -15,7 +15,7 @@ import { Router } from '@angular/router';
   standalone: true,
   imports: [SharedModule, FormsModule, CommonModule, NgxPaginationModule, NgbModule],
   templateUrl: './easy-connection.component.html',
-  styleUrl: './easy-connection.component.scss'
+  styleUrls: ['./easy-connection.component.scss']
 })
 export class EasyConnectionComponent {
   serverName: string = '';
@@ -142,6 +142,15 @@ export class EasyConnectionComponent {
     } else {
       this.toggleClass = "off-line";
     }
+  }
+
+  openNewConnection() {
+    // Centralized handler for opening the new connection form
+    this.isEditPreview = false;
+    this.isFormEnabled = true;
+    this.showList = false;
+    this.resetForm();
+    console.log('New Connection: form opened');
   }
 
   viewConnections(){

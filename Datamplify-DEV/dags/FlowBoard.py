@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.operators.bash import PythonOperator
+from airflow.operators.python import PythonOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.operators.empty import EmptyOperator
 from datetime import datetime
@@ -9,29 +9,45 @@ from airflow.providers.smtp.operators.smtp import EmailOperator
 from airflow.sensors.python import PythonSensor
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.utils.task_group import TaskGroup
-
-
 # FlowBoard Functionalities:
 # 1.Expression,
 # 2.Joins
 # 3.Remove duplicates
 # 4.Filter
 # 5.Extraction
+import importlib
+from importlib import import_module
 
+def _setup_django_if_available():
+    """
+    Initialize Django only when running inside Airflow worker/scheduler where
+    the project is mounted at /opt/airflow/project and Django is available.
+    Safe no-op if not available to keep DAG parse working.
+    """
+    try:
+        # django_setup.py expected at project root
+        dj_setup = import_module('django_setup')
+        if hasattr(dj_setup, 'setup_django'):
+            dj_setup.setup_django()
+    except Exception:
+        # Ignore – allow DAG to parse without Django
+        pass
 
-if __name__ != "__main__":
-    sys.path.append("Datamplify")
-    # sys.path.append("Analytify/")
+def _call_func(module_path: str, func_name: str, *args, **kwargs):
+    _setup_django_if_available()
+    mod = import_module(module_path)
+    fn = getattr(mod, func_name)
+    return fn(*args, **kwargs)
 
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project.settings")
-    django.setup()
-    from ..Service.utils import run_sql_commands 
-    from ..FlowBoard.utils import Extraction,Loading,ETL_Filter,Remove_duplicates,Expressions,Join
-    # from dashboard.ETL import generate_engine
+def _make_callable_kwargs(module_path: str, func_name: str):
+    def _inner(**op_kwargs):
+        return _call_func(module_path, func_name, **op_kwargs)
+    return _inner
 
-from Datamplify import settings
-
-
+def _make_callable_args(module_path: str, func_name: str):
+    def _inner(*op_args, **op_kwargs):
+        return _call_func(module_path, func_name, *op_args, **op_kwargs)
+    return _inner
 
 GLOBAL_PARAM_HOLDER = '__global_param_store__'
 
@@ -43,6 +59,13 @@ def cleanup_on_success(tasks_list,user_id,hierarchy_id,**kwargs):
     if not user_id or not hierarchy_id:
         return
 
+    # Lazy import to avoid Django dependency at parse time
+    _setup_django_if_available()
+    try:
+        from Service.utils import generate_engine
+    except Exception:
+        # If not available, skip cleanup silently
+        return
     engine_data = generate_engine(hierarchy_id, user_id)
     engine = engine_data['engine']
     schema = engine_data['schema']
@@ -162,7 +185,9 @@ def create_sql_param_task(param, user_id):
     """
     def _sql_param_fn(**kwargs):
         ti = kwargs['ti']
-        result = run_sql_commands(param['query'], param['database'], user_id)
+        # Lazy import to avoid Django dependency at parse time
+        _setup_django_if_available()
+        result = _call_func('Service.utils', 'run_sql_commands', param['query'], param['database'], user_id)
         value = cast_output_by_type(result, param['data_type'])
         ti.xcom_push(key=param['param_name'], value=value)
 
@@ -249,7 +274,9 @@ def Loop_parameters(task_details, user_id, **kwargs):
     if task_details['loop_type'] == 'command':
         return_value = run_external_command(task_details['command'], task_details['return_type'], task_details['fail'])
     elif task_details['loop_type'] == 'sql':
-        result = run_sql_commands(task_details['command'], task_details['hierarchy_id'], user_id)
+        # Lazy import and call
+        _setup_django_if_available()
+        result = _call_func('Service.utils', 'run_sql_commands', task_details['command'], task_details['hierarchy_id'], user_id)
         return_value = cast_output_by_type(result, task_details['return_type'])
 
     ti.xcom_push(key=param_name, value=return_value)
@@ -268,7 +295,7 @@ def task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map
     if task_type == 'source_data_object':
         task = PythonOperator(
             task_id=task_id,
-            python_callable=Extraction,
+            python_callable=_make_callable_kwargs('FlowBoard.utils', 'Extraction'),
             op_kwargs={
                 'dag_id': dag_id,
                 'task_id': task_id,
@@ -285,7 +312,7 @@ def task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map
     elif task_type == "target_data_object":
         task = PythonOperator(
             task_id=task_id,
-            python_callable=Loading,
+            python_callable=_make_callable_kwargs('FlowBoard.utils', 'Loading'),
             op_kwargs={
                 'hierarchy_id': task_conf['hierarchy_id'],
                 'user_id': user_id,
@@ -302,25 +329,25 @@ def task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map
     elif task_type == "Filter":
         task = PythonOperator(
             task_id=task_id,
-            python_callable=ETL_Filter,
+            python_callable=_make_callable_args('FlowBoard.utils', 'ETL_Filter'),
             op_args=[task_conf['filter_conditions'], dag_id, task_id, task_conf['previous_task_id'], target_hierarchy_id, user_id, source_id]
         )
     elif task_type == "Expression":
         task = PythonOperator(
             task_id=task_id,
-            python_callable=Expressions,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Expressions'),
             op_args=[task_conf['expressions_list'], dag_id, task_id, task_conf['previous_task_id'], target_hierarchy_id, user_id, source_id]
         )
     elif task_type == "Rollup":
         task = PythonOperator(
             task_id=task_id,
-            python_callable=Remove_duplicates,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Remove_duplicates'),
             op_args=[task_conf['group_attributes'], task_conf['having_clause'], task_id, dag_id, task_conf['previous_task_id'], task_conf.get('attributes', ''), target_hierarchy_id, user_id, source_id]
         )
     elif task_type == "Joiner":
         task = PythonOperator(
             task_id=task_id,
-            python_callable=Join,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Join'),
             op_args=[task_conf['primary_table'], task_conf['joining_list'], task_conf['where_clause'], dag_id, task_id, task_conf['previous_task_id'], task_conf.get('attributes', ''), target_hierarchy_id, user_id, source_id]
         )
     return task_map
@@ -405,12 +432,50 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
     return dag
 
 def get_configs():
-    CONFIG_DIR = '/var/www/configs' if settings.DATABASES['default']['NAME'] == 'analytify_qa' else 'configs'
+    """
+    Discover FlowBoard JSON configs under the mounted project path inside the Airflow container.
+    We always use /opt/airflow/project/Configs/FlowBoard and recurse into user/UUID folders.
+    """
+    import os
+    CONFIG_DIR = '/opt/airflow/project/Configs/FlowBoard'
+    print(f"[INFO] Looking for FlowBoard configs in: {CONFIG_DIR}")
+
     configs = []
-    for file in os.listdir(CONFIG_DIR):
-        if file.endswith(".json"):
-            with open(os.path.join(CONFIG_DIR, file)) as f:
-                configs.append(json.load(f))
+    try:
+        if not os.path.isdir(CONFIG_DIR):
+            try:
+                os.makedirs(CONFIG_DIR, exist_ok=True)
+                print(f"[INFO] Config directory {CONFIG_DIR} not found. Created it. No configs to parse yet.")
+            except Exception as e:
+                print(f"[WARN] Could not create {CONFIG_DIR}: {e}")
+            return configs
+
+        discovered = []
+        for root, dirs, files in os.walk(CONFIG_DIR):
+            for file in files:
+                if file.lower().endswith('.json'):
+                    discovered.append(os.path.join(root, file))
+
+        print(f"[INFO] FlowBoard config discovery: found {len(discovered)} json file(s) under {CONFIG_DIR}")
+        for p in discovered[:20]:
+            print(f"[INFO] - {p}")
+        if len(discovered) > 20:
+            print(f"[INFO] ... and {len(discovered)-20} more")
+
+        for path in discovered:
+            try:
+                with open(path) as f:
+                    config = json.load(f)
+                    # Ensure dag_id is set from filename if not present
+                    if 'dag_id' not in config:
+                        config['dag_id'] = os.path.splitext(os.path.basename(path))[0]
+                    configs.append(config)
+                    print(f"[INFO] Loaded config for DAG: {config.get('dag_id')}")
+            except Exception as e:
+                print(f"[ERROR] Failed to load config {path}: {e}")
+    except Exception as e:
+        print(f"[ERROR] Unexpected error during config discovery: {e}")
+
     return configs
 
 for config in get_configs():

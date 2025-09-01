@@ -12,16 +12,24 @@ x-airflow-common:
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    AIRFLOW__API__AUTH_BACKEND: "airflow.api.auth.backend.basic_auth"
+    AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
     DB_HOST: host.docker.internal
+    DB_NAME: Datamplify2
+    DB_USER: postgres
+    DB_PASSWORD: postgres
+    DB_PORT: "5432"
+    PYTHONPATH: /opt/airflow/project
+    DJANGO_SETTINGS_MODULE: Datamplify.settings
 
   volumes:
     - ./Airflow/Dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
-    - ./shared:/opt/airflow/shared  # ✅ Shared volume to read etl_jobs.json
+    - ./shared:/opt/airflow/shared  # Shared volume to read etl_jobs.json
     - ./etl_tool:/opt/airflow/etl_tool  # Mount etl_tool for Airflow Python imports
     - ./requirements.txt:/requirements.txt
+    - .:/opt/airflow/project  # Mount entire project root
+    - ./Configs:/opt/airflow/project/Configs
   depends_on:
     - postgres
     - redis
@@ -36,7 +44,7 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   redis:
     image: redis:latest
@@ -57,6 +65,8 @@ services:
       - ./shared:/opt/airflow/shared
       - ./etl_tool:/opt/airflow/etl_tool
       - ./requirements.txt:/requirements.txt
+      - .:/opt/airflow/project
+      - ./Configs:/opt/airflow/project/Configs
 
   airflow-scheduler:
     <<: *airflow-common
@@ -68,6 +78,8 @@ services:
       - ./shared:/opt/airflow/shared
       - ./etl_tool:/opt/airflow/etl_tool
       - ./requirements.txt:/requirements.txt
+      - .:/opt/airflow/project
+      - ./Configs:/opt/airflow/project/Configs
 
   airflow-worker:
     <<: *airflow-common
@@ -79,7 +91,8 @@ services:
       - ./shared:/opt/airflow/shared
       - ./etl_tool:/opt/airflow/etl_tool
       - ./requirements.txt:/requirements.txt
-
+      - .:/opt/airflow/project
+      - ./Configs:/opt/airflow/project/Configs
   airflow-triggerer:
     <<: *airflow-common
     command: ["bash", "-lc", "airflow triggerer"]
@@ -90,6 +103,8 @@ services:
       - ./shared:/opt/airflow/shared
       - ./etl_tool:/opt/airflow/etl_tool
       - ./requirements.txt:/requirements.txt
+      - .:/opt/airflow/project
+      - ./Configs:/opt/airflow/project/Configs
 
   airflow-init:
     <<: *airflow-common
@@ -102,6 +117,8 @@ services:
       - ./shared:/opt/airflow/shared
       - ./etl_tool:/opt/airflow/etl_tool
       - ./requirements.txt:/requirements.txt
+      - .:/opt/airflow/project
+      - ./Configs:/opt/airflow/project/Configs
 
 volumes:
   postgres-db-volume:

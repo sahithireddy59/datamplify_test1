@@ -1,0 +1,31 @@
+{
+  "dag_id": "127001-20250821105336-1",
+  "user_id": "1d5c7311-914a-49aa-8f06-c310660b4e11",
+  "username": "test_user",
+  "flow_name": "Temp Flow",
+  "tasks": [
+    {
+      "id": "start_task",
+      "type": "source_data_object",
+      "format": "database",
+      "hierarchy_id": "test_hierarchy",
+      "source_table_name": "test_table",
+      "source_attributes": [["col1", "string", "col1"]],
+      "attributes": []
+    },
+    {
+      "id": "end_task", 
+      "type": "target_data_object",
+      "format": "database",
+      "hierarchy_id": "test_hierarchy",
+      "target_table_name": "output_table",
+      "previous_task_id": "start_task",
+      "truncate": false,
+      "create": true,
+      "attribute_mapper": []
+    }
+  ],
+  "parameters": [],
+  "sql_parameters": [],
+  "flow": [["start_task", "end_task"]]
+}

@@ -1,0 +1,129 @@
+{
+    "dag_name": "test1",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_all_orders_v",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "all_orders_v",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "order_number",
+                    "bigint",
+                    "order_number",
+                    "bigint"
+                ],
+                [
+                    "created_at",
+                    "text",
+                    "created_at",
+                    "text"
+                ],
+                [
+                    "first_name",
+                    "text",
+                    "first_name",
+                    "text"
+                ],
+                [
+                    "last_name",
+                    "text",
+                    "last_name",
+                    "text"
+                ],
+                [
+                    "email",
+                    "text",
+                    "email",
+                    "text"
+                ],
+                [
+                    "default_address_city",
+                    "text",
+                    "default_address_city",
+                    "text"
+                ],
+                [
+                    "orders_count",
+                    "text",
+                    "orders_count",
+                    "text"
+                ],
+                [
+                    "total_spent",
+                    "text",
+                    "total_spent",
+                    "text"
+                ],
+                [
+                    "line_item_price",
+                    "character varying",
+                    "line_item_price",
+                    "character varying"
+                ],
+                [
+                    "product_type",
+                    "text",
+                    "product_type",
+                    "text"
+                ],
+                [
+                    "line_item_name",
+                    "character varying",
+                    "line_item_name",
+                    "character varying"
+                ],
+                [
+                    "title",
+                    "text",
+                    "title",
+                    "text"
+                ],
+                [
+                    "total_tax",
+                    "text",
+                    "total_tax",
+                    "text"
+                ],
+                [
+                    "total_discounts",
+                    "text",
+                    "total_discounts",
+                    "text"
+                ],
+                [
+                    "total_price_usd",
+                    "text",
+                    "total_price_usd",
+                    "text"
+                ]
+            ]
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_dag_test",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "dag_test",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "SRC_all_orders_v"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_all_orders_v",
+            "TGT_dag_test"
+        ]
+    ],
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d",
+    "username": "sahithi12",
+    "dag_id": "127001-20250826054431-3",
+    "flow_name": "test1"
+}

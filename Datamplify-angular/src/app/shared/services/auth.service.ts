@@ -66,10 +66,10 @@ validateOtp(otp:any, emailActivationToken:any) {
   return this.http.post<any>(`${environment.apiUrl}/authentication/activate_account/`+emailActivationToken,otp);
 }
 forgotPassword(data:any){
-  return this.http.post<any>(`${environment.apiUrl}/reset_password/`,data);
+  return this.http.post<any>(`${environment.apiUrl}/authentication/reset_password/`,data);
 }
 resetPassword(token:any,data:any){
-  return this.http.put<any>(`${environment.apiUrl}/reset_password/confirm`+'/'+token,data);
+  return this.http.put<any>(`${environment.apiUrl}/authentication/reset_password/confirm/`+token,data);
 }
 reactivateEmail(data:any){
   return this.http.post<any>(`${environment.apiUrl}/re_activation`+'/',data);

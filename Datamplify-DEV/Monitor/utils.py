@@ -1,5 +1,6 @@
 from Datamplify import settings
 import requests
+import logging
 
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
@@ -9,16 +10,21 @@ from dateutil.relativedelta import relativedelta
 def airflow_token():
     login_url = settings.airflow_url
     payload = {"username": f"{settings.airflow_username}", "password": f"{settings.airflow_password}"}
+    logging.getLogger(__name__).info(f"Getting Airflow token from {login_url}")
     response = requests.post(
             login_url,
             json=payload,  
             headers={"Content-Type": "application/json"}
         )
-    if response.status_code ==201:
-        data = response.json()
-        return data.get('access_token')
+    if response.status_code in (200, 201):
+        try:
+            data = response.json()
+            # token field name may vary depending on auth plugin
+            return data.get('access_token') or data.get('token')
+        except Exception:
+            return None
     else:
-        return 'unauthorised'
+        return None
     
 
 
@@ -56,3 +62,27 @@ def time_ago(timestamp_str):
         return "just now"
 
 # Example usage
+
+def list_airflow_dags():
+    """List available DAGs in Airflow instance"""
+    air_token = airflow_token()
+    if not air_token:
+        return {"error": "Failed to get Airflow token"}
+    
+    url = f"{settings.airflow_host}/api/v2/dags"
+    headers = {
+        "Authorization": f"Bearer {air_token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            # Return list of DAG IDs
+            return [dag["dag_id"] for dag in data.get("dags", [])]
+        else:
+            return {"error": f"Failed to list DAGs: {response.status_code} - {response.text}"}
+    except Exception as e:
+        return {"error": str(e)}

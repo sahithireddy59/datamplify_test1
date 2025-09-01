@@ -93,6 +93,8 @@ MIDDLEWARE = [
 
 ]
 
+APPEND_SLASH = False
+
 ROOT_URLCONF = 'Datamplify.urls'
 
 TEMPLATES = [
@@ -126,12 +128,13 @@ WSGI_APPLICATION = 'Datamplify.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Datamplify2',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
+        'NAME': config('DB_NAME', default='Datamplify2'),
+        'USER': config('DB_USER', default='postgres'),
+        'PASSWORD': config('DB_PASSWORD', default='postgres'),
+        # Note: when running inside Docker, use host.docker.internal to reach host Postgres on Windows/Mac
+        'HOST': config('DB_HOST', default='localhost'),
+        'PORT': config('DB_PORT', default='5432'),
     }
 }
 
@@ -209,7 +212,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Mail
 
-if DATABASES['default']['NAME'] =='DatamplifyDEV':
+if DATABASES['default']['NAME'] =='Datamplify2':
 
     Link_url = 'http://202.65.155.119/'
     TOKEN_URL = 'http://172.16.17.159/v1/authentication/o/token/'
@@ -235,7 +238,15 @@ else:
     airflow_username = "airflow"
     airflow_password = "airflow"
 
+# Optional environment overrides for endpoints and Airflow
+# OAuth token endpoint override (useful for quick testing/failover)
+TOKEN_URL = config('TOKEN_URL', default=TOKEN_URL)
 
+# Airflow overrides so host/creds can be changed without code edits
+airflow_host = config('AIRFLOW_HOST', default=airflow_host)
+airflow_url = config('AIRFLOW_URL', default=airflow_url)
+airflow_username = config('AIRFLOW_USERNAME', default=airflow_username)
+airflow_password = config('AIRFLOW_PASSWORD', default=airflow_password)
 
 EMAIL_BACKEND = config('EMAIL_BACKEND')
 EMAIL_HOST = config('EMAIL_HOST')
@@ -252,4 +263,20 @@ AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME')
 
 file_save_path= 's3'
 
-config_dir = '/var/www/Configs'
+# Write dynamic DAG configs into the host repo so Airflow containers (which bind-mount
+# the repo to /opt/airflow/project) can discover them at /opt/airflow/project/Configs/...
+# Use host path here because Django runs on the host; Airflow sees the same files via the mount.
+# Allow override via env CONFIG_DIR if needed.
+config_dir = config('CONFIG_DIR', default=str(BASE_DIR / 'Configs'))
+
+# Mapping between FlowBoard IDs and Airflow DAG IDs
+# This should be updated with actual mappings between your FlowBoard records and Airflow DAGs
+FLOWBOARD_TO_DAG_MAPPING = {
+    # Format: "FlowBoard ID": "Airflow DAG ID" or ["DAG ID 1", "DAG ID 2", ...] to try multiple options
+    # If no mapping exists, the FlowBoard ID will be used as the DAG ID
+    # Add mappings as needed when FlowBoard IDs differ from Airflow DAG IDs
+    "127001-20250821105336-1": ["127001"],
+    "127001-20250822055501-2": ["127001"],
+    # Add more mappings as needed
+    "127001": ["127001"],  # Direct mapping
+}
