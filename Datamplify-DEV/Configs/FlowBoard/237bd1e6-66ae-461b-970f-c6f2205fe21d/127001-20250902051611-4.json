@@ -1,0 +1,81 @@
+{
+    "dag_name": "test_02",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_company_profile",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "company_profile",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "id",
+                    "integer",
+                    "id",
+                    "integer"
+                ],
+                [
+                    "company_id",
+                    "integer",
+                    "company_id",
+                    "integer"
+                ],
+                [
+                    "company_name",
+                    "character varying",
+                    "company_name",
+                    "character varying"
+                ],
+                [
+                    "user_id",
+                    "uuid",
+                    "user_id",
+                    "uuid"
+                ],
+                [
+                    "api_access_id",
+                    "integer",
+                    "api_access_id",
+                    "integer"
+                ],
+                [
+                    "webapp_short_url",
+                    "character varying",
+                    "webapp_short_url",
+                    "character varying"
+                ],
+                [
+                    "webapp_url",
+                    "character varying",
+                    "webapp_url",
+                    "character varying"
+                ]
+            ]
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_company_profile_test",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "company_profile_test",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "SRC_company_profile"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_company_profile",
+            "TGT_company_profile_test"
+        ]
+    ],
+    "dag_id": "127001-20250902051611-4",
+    "flow_name": "test_02",
+    "username": "sahithi12",
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d"
+}

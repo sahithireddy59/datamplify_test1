@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'drf_yasg',  
 
     "corsheaders",
+    "app.scheduler"
 
 
 
@@ -219,8 +220,8 @@ if DATABASES['default']['NAME'] =='Datamplify2':
     REDIRECT_URI = 'http://172.16.17.159/v1/nocallback/'
     airflow_host = "http://202.65.155.123:8081/"
     airflow_url = "http://202.65.155.123:8081/auth/token"
-    airflow_username = "admin"
-    airflow_password = "znVermGyEy24whVQ"
+    airflow_username = "airflow"
+    airflow_password = "airflow"
     # Link_url = 'http://localhost:4201/'
     # TOKEN_URL = 'http://127.0.0.1:8000/v1/authentication/o/token/'
     # REDIRECT_URI = 'http://127.0.0.1:8000/v1/nocallback/'
@@ -280,3 +281,6 @@ FLOWBOARD_TO_DAG_MAPPING = {
     # Add more mappings as needed
     "127001": ["127001"],  # Direct mapping
 }
+
+AIRFLOW_CONFIG_ROOT = os.environ.get("AIRFLOW_CONFIG_ROOT", "/opt/airflow/project/Configs/FlowBoard")
+AIRFLOW_SCHEDULER_CONFIG_ROOT = os.environ.get("AIRFLOW_SCHEDULER_CONFIG_ROOT", r"C:\Users\vsahithi\Desktop\datamplify\Datamplify_backend\Datamplify-DEV\Configs\Scheduler")

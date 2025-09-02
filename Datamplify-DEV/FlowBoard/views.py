@@ -6,6 +6,8 @@ from django.db import transaction
 from Service.utils import generate_user_unique_code,file_save_1,s3,UUIDEncoder,CustomPaginator
 from FlowBoard.serializers import Create_FLow,Update_FlowBoard
 from FlowBoard import models as flow_model
+from FlowBoard.services.publish import publish_flowboard
+from app.scheduler.models import Scheduler
 from Connections import models as conn_models
 from authentication import models as auth_models
 from authentication.utils import token_function
@@ -59,13 +61,21 @@ class FlowBoard(APIView):
                     json.dump(flow,f, indent=4,cls=UUIDEncoder)
                 file_data = drawflow.read().decode('utf-8')  
                 file_path = file_save_1(file_data,'',Flow_id,'FlowBoard',"")
-                id = flow_model.FlowBoard.objects.create(
-                    Flow_id = Flow_id,
+                created_flow = flow_model.FlowBoard.objects.create(
+                    Flow_id=Flow_id,
                     Flow_name=flow_name,
                     DrawFlow=file_path['file_url'],
-                    user_id = user
+                    user_id=user
                 )
-                
+                flow_data = {
+                    'id': str(created_flow.id),
+                    'flow_id': Flow_id,
+                    'flow_name': flow_name,
+                    'created_at': datetime.now(utc),
+                    'updated_at': datetime.now(utc),
+                    'parsed': False,
+                    'schedule': None
+                }
                 # Auto-trigger DAG creation and execution
                 try:
                     trigger_result = self._auto_trigger_dag(Flow_id, request)
@@ -76,7 +86,7 @@ class FlowBoard(APIView):
                 except Exception as e:
                     logger.error(f"Auto-trigger error for FlowBoard {Flow_id}: {str(e)}")
                 
-                return Response({'message':'Saved SucessFully','Flow_Board_id':id.id},status=status.HTTP_200_OK)
+                return Response({'message':'Saved SucessFully','Flow_Board_id': str(created_flow.id)},status=status.HTTP_200_OK)
             else:
                 return Response({'message':'Serializer Error'},status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -220,11 +230,51 @@ class FlowOperation(APIView):
                 dag_id = data.Flow_id
                 configs_dir = f'{settings.config_dir}/FlowBoard/{str(user_id)}'
                 file_path = os.path.join(configs_dir, f'{dag_id}.json')
+                # Ensure flow plan JSON exists; if not, instruct client to save the flow again
+                if not os.path.exists(file_path):
+                    return Response({
+                        'message': 'Flow definition missing. Please open and save the flow again to regenerate the config JSON.',
+                        'expected_path': file_path,
+                        'flow_id': dag_id
+                    }, status=status.HTTP_404_NOT_FOUND)
+
                 with open(file_path, 'r') as f:
                     dag_json = json.load(f)
 
-                transformation = requests.get(data.DrawFlow)
-                transformations_flow = transformation.json()
+                # Resolve DrawFlow which can be stored as:
+                # - a full URL to the JSON
+                # - a raw JSON string (legacy or fallback "{}")
+                # - an S3 key/path without scheme
+                transformations_flow = {}
+                try:
+                    draw_ref = (data.DrawFlow or '').strip()
+                    if not draw_ref or draw_ref == '{}':
+                        # Nothing stored; return empty structure
+                        transformations_flow = {}
+                    elif draw_ref.startswith('{') and draw_ref.endswith('}'):
+                        # Inline JSON stored in DB
+                        transformations_flow = json.loads(draw_ref)
+                    elif draw_ref.startswith('http://') or draw_ref.startswith('https://'):
+                        # Remote URL
+                        resp = requests.get(draw_ref, timeout=10)
+                        resp.raise_for_status()
+                        transformations_flow = resp.json() if resp.content else {}
+                    else:
+                        # Assume S3 key/path. Try to derive key and fetch from S3
+                        # Examples: '.../FlowBoard/<user>/<id>.json' or 'FlowBoard/<user>/<id>.json'
+                        try:
+                            if 'FlowBoard/' in draw_ref:
+                                s3_key = f"Datamplify/FlowBoard/{draw_ref.split('FlowBoard/')[1]}"
+                            else:
+                                # If already relative under Datamplify
+                                s3_key = draw_ref.lstrip('/')
+                            obj = s3.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=s3_key)
+                            body = obj['Body'].read()
+                            transformations_flow = json.loads(body.decode('utf-8')) if body else {}
+                        except Exception:
+                            transformations_flow = {}
+                except Exception:
+                    transformations_flow = {}
 
                 return Response({
                         'message': 'success',
@@ -376,6 +426,7 @@ class FlowRun(APIView):
         except requests.RequestException as e:
             return Response({'message': f'Trigger request failed: {e}'}, status=status.HTTP_502_BAD_GATEWAY)
 
+
 class Flow_List(APIView):
     @csrf_exempt
     @transaction.atomic()
@@ -400,12 +451,38 @@ class Flow_List(APIView):
             total_pages = ceil(total_records / page_size)
             offset = (page_number - 1) * page_size
             limit = page_size
-            data = flow_model.FlowBoard.objects.filter(user_id = tok1['user_id'],Flow_name__icontains = search).values('id','Flow_name','Flow_id','created_at','updated_at')[offset:offset + limit]
-            return Response({'data':data,
-                            'total_pages': total_pages,
-                            "total_records":total_records,
-                            'page_number': page_number,
-                            'page_size': page_size},status=status.HTTP_200_OK)
+            # Get the paginated queryset
+            queryset = flow_model.FlowBoard.objects.filter(
+                user_id=tok1['user_id'],
+                Flow_name__icontains=search
+            ).order_by('-created_at')[offset:offset + limit]
+            
+            # Determine which flowboards have schedulers in bulk
+            flow_ids = [str(f.id) for f in queryset]
+            sched_flow_ids = set(
+                str(x) for x in Scheduler.objects.filter(flowboard_id__in=flow_ids).values_list('flowboard_id', flat=True)
+            )
+
+            # Build response data with scheduling information
+            data = []
+            for flow in queryset:
+                data.append({
+                    'id': str(flow.id),
+                    'Flow_id': flow.Flow_id,
+                    'Flow_name': flow.Flow_name,
+                    'DrawFlow': flow.DrawFlow,
+                    'user_id': str(flow.user_id.id) if getattr(flow, 'user_id', None) else None,
+                    'parsed': flow.parsed,
+                    'has_scheduler': str(flow.id) in sched_flow_ids
+                })
+            
+            return Response({
+                'data': data,
+                'total_pages': total_pages,
+                'total_records': total_records,
+                'page_number': page_number,
+                'page_size': page_size
+            }, status=status.HTTP_200_OK)
             # pag = pagination(request,trans_list,request.GET.get('page',1),request.GET.get('page_count',10))
 
         else:

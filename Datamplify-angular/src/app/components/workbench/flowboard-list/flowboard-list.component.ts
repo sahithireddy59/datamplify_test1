@@ -3,12 +3,14 @@ import { SharedModule } from '../../../shared/sharedmodule';
 import { CommonModule, DatePipe  } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { NgxPaginationModule } from 'ngx-pagination';
 import { ToastrService } from 'ngx-toastr';
 import { WorkbenchService } from '../workbench.service';
 import { LoaderService } from '../../../shared/services/loader.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import Swal from 'sweetalert2';
+import { SchedulerModalComponent } from '../../scheduler/scheduler-modal/scheduler-modal.component';
 
 @Component({
   selector: 'app-flowboard-list',
@@ -25,7 +27,7 @@ export class FlowboardListComponent {
   search: string = '';
   dataFlowList: any[] = [];
 
-  constructor(private toasterService: ToastrService, private workbechService: WorkbenchService, private loaderService: LoaderService, private router: Router, private route: ActivatedRoute) {
+  constructor(private toasterService: ToastrService, private workbechService: WorkbenchService, private loaderService: LoaderService, private router: Router, private route: ActivatedRoute, private modal: NgbModal) {
   }
 
   ngOnInit() {
@@ -97,5 +99,15 @@ export class FlowboardListComponent {
       this.page = 1;
     }
     this.getFlowboardList();
+  }
+
+  openScheduler(flow: any) {
+    const ref = this.modal.open(SchedulerModalComponent, { size: 'lg' });
+    ref.componentInstance.defaultDagId = flow?.Flow_id;
+    ref.componentInstance.suggestedName = `${flow?.Flow_name || 'Flow'}-scheduler`;
+    ref.componentInstance.flowboardId = flow?.id;
+    ref.result.then(() => {
+      // no-op; could refresh a schedulers list if present
+    }).catch(() => {});
   }
 }

@@ -14,10 +14,7 @@ import traceback
 from airflow.utils import timezone as airflow_tz
 from datetime import timezone as dt_timezone
 from airflow.exceptions import AirflowFailException
-
-
-
-
+import pendulum
 
 # FlowBoard Functionalities:
 # 1.Expression,
@@ -439,32 +436,61 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
     # Ensure the DAG ID matches the FlowBoard ID
     actual_dag_id = str(dag_id)
     print(f"[INFO] Creating DAG with ID: {actual_dag_id}")
-    
+
+    # --- timezone & start_date (must be static and in the past) ---
+    tz = pendulum.timezone(config.get('timezone', 'Asia/Kolkata'))
+    raw_start = config.get('start_date', '2024-01-01T00:00:00')
+    try:
+        start_dt = pendulum.parse(raw_start).replace(tzinfo=tz)
+    except Exception:
+        start_dt = pendulum.datetime(2024, 1, 1, tz=tz)
+
+    # If start_date accidentally ends up in the future, push it 1 minute into the past
+    now_tz = pendulum.now(tz)
+    if start_dt > now_tz:
+        start_dt = now_tz.subtract(minutes=1)
+
+    # --- dynamic scheduler knobs from config ---
+    schedule_value   = config.get('schedule', None)      # e.g. "0 2 * * *" | "@daily" | None
+    catchup_value    = bool(config.get('catchup', False))
+    max_active_runs  = int(config.get('max_active_runs', 1))
+
+    # Optional safety: validate/normalize cron
+    try:
+        schedule_value = _safe_schedule(schedule_value)
+    except NameError:
+        # _safe_schedule not defined if you skipped the helper—no problem
+        pass
+
     dag = DAG(
         actual_dag_id,
         default_args={
             'owner': 'airflow',
-            'start_date': airflow_tz.datetime(2024, 1, 1),  # timezone-aware
+            'start_date': start_dt,     # tz-aware (pendulum)
             'retries': 0
         },
-        schedule=None,  # correct param
-        catchup=False,
+        schedule=schedule_value,        # << dynamic instead of None
+        catchup=catchup_value,          # << dynamic instead of False
+        max_active_runs=max_active_runs,
         description=config.get('flow_name', 'No Description'),
         is_paused_upon_creation=False,
         tags=[str(user_name), str(config.get('flow_name', ''))],
         on_success_callback=dag_success_callback,
         on_failure_callback=dag_failure_callback,
     )
+
     task_map = {}
     with dag:
-        target_hierarchy_id = next((task["hierarchy_id"] for task in config['tasks'] if task["type"] == "target_data_object"),
-                                next((task["hierarchy_id"] for task in config['tasks'] if task["type"] == "source_data_object"), None))
+        target_hierarchy_id = next(
+            (t["hierarchy_id"] for t in config['tasks'] if t["type"] == "target_data_object"),
+            next((t["hierarchy_id"] for t in config['tasks'] if t["type"] == "source_data_object"), None)
+        )
 
         source_id = [(i['id'], i['source_table_name']) for i in config['tasks'] if i['type'] == 'source_data_object']
 
         param_list = config.get('parameters', [])
         sql_param_list = config.get('sql_parameters', [])
-        
+
         init_param_task = PythonOperator(
             task_id='__init_global_params',
             python_callable=init_global_params(param_list),
@@ -478,47 +504,30 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
         overall_task_list = []
         task_map = {}
         for task_conf in config['tasks']:
-            task_conf = replace_params_in_json(task_conf,xcom_cache=None,parent_task_name = None,**kwargs)
-            parameter_task= None
-            task_map = task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map,parameter_task)
-            task_id = task_conf['id']
-            if task_conf['type'] =='loop':
+            task_conf = replace_params_in_json(task_conf, xcom_cache=None, parent_task_name=None, **kwargs)
+            parameter_task = None
+            task_map = task_creator(task_conf, actual_dag_id, user_id, target_hierarchy_id, source_id, task_map, parameter_task)
+            _tid = task_conf['id']
+            if task_conf['type'] == 'loop':
                 for t in task_conf['loop_tasks']:
-                    task_id = t['id']
-                    overall_task_list.append(task_id)
+                    overall_task_list.append(t['id'])
             else:
-                overall_task_list.append(task_id)
-            
+                overall_task_list.append(_tid)
 
         cleanup_task = PythonOperator(
             task_id='cleanup_temporary_tables',
             python_callable=cleanup_on_success,
-            op_kwargs={
-                'tasks_list': overall_task_list,
-                'user_id': user_id,
-                'hierarchy_id': target_hierarchy_id
-            },
-            trigger_rule=TriggerRule.ALL_DONE,  # This ensures it runs no matter what
+            op_kwargs={'tasks_list': overall_task_list, 'user_id': user_id, 'hierarchy_id': target_hierarchy_id},
+            trigger_rule=TriggerRule.ALL_DONE,
         )
-        
-# dag_success_marker = PythonOperator(
-#             task_id='dag_success_marker',
-#             python_callable=check_dag_status,
-#             trigger_rule=TriggerRule.ALL_DONE  # Important: Run regardless of prior failures
-#         )
-        dag_success_marker = PythonOperator(
-            task_id="propagate_failure",
-            python_callable=fail_task,
-            trigger_rule=TriggerRule.ONE_FAILED,
-        )
-        
-        if config.get('flow',[]):
-            for parent, child in config.get('flow', []):
+
+        if config.get('flow', []):
+            for parent, child in config['flow']:
                 task_map[parent] >> task_map[child]
-            last_task = config.get('flow')[-1][-1]
-            task_map[last_task] >> cleanup_task >> dag_success_marker
+            last_task = config['flow'][-1][-1]
+            task_map[last_task] >> cleanup_task
         else:
-            init_param_task >> cleanup_task >> dag_success_marker
+            init_param_task >> cleanup_task
 
         for param in sql_param_list:
             task_name = f"__sqlparam__{param['param_name']}"
@@ -529,12 +538,15 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
             task_map[task_name] = sql_task
             if param['order'] == 'before':
                 sql_task >> task_map[param['dependent_task']]
-            elif param['order'] =='after':
-                task_map[param['dependent_task']] >> sql_task  
+            elif param['order'] == 'after':
+                task_map[param['dependent_task']] >> sql_task
             else:
-                sql_task  
-        globals()[dag_id] = dag
-        return dag
+                pass
+
+    globals()[actual_dag_id] = dag
+    return dag
+
+ 
 
 # Django is optional inside the Airflow container. Fallback gracefully if unavailable.
 try:

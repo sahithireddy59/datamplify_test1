@@ -1,0 +1,92 @@
+<div class="modal-header">
+  <h5 class="modal-title">{{ form.value.id ? 'Edit Scheduler' : 'New Scheduler' }}</h5>
+  <button type="button" class="btn-close" aria-label="Close" (click)="activeModal.dismiss()"></button>
+</div>
+
+<div class="modal-body">
+  <form [formGroup]="form">
+    <div class="mb-3">
+      <label class="form-label">Name</label>
+      <input class="form-control" formControlName="name" placeholder="My Flow Scheduler" />
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Mode</label>
+      <select class="form-select" formControlName="mode" (change)="onModeChange()">
+        <option value="trigger">Trigger DAG</option>
+        <option value="bash">Bash Command</option>
+      </select>
+    </div>
+
+    <div class="mb-3" *ngIf="form.value.mode === 'trigger'">
+      <label class="form-label">Target DAG ID</label>
+      <input class="form-control" formControlName="target_dag_id" placeholder="flowboard_dag_id" />
+    </div>
+
+    <div class="mb-3" *ngIf="form.value.mode === 'bash'">
+      <label class="form-label">Bash Command</label>
+      <textarea rows="3" class="form-control" formControlName="bash_command" placeholder="echo 'hello'"></textarea>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Cron Schedule</label>
+        <input class="form-control" formControlName="schedule" placeholder="0 2 * * *" />
+        <div class="form-text">{{ cronHuman }}</div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Presets</label>
+        <select class="form-select" (change)="onPresetChange($any($event.target).value)">
+          <option value="">-- Select preset --</option>
+          <option value="*/5 * * * *">Every 5 minutes</option>
+          <option value="*/10 * * * *">Every 10 minutes</option>
+          <option value="*/30 * * * *">Every 30 minutes (Half hour)</option>
+          <option value="0 * * * *">Hourly</option>
+          <option value="0 */12 * * *">Every 12 hours (Half day)</option>
+          <option value="0 0 * * *">Daily (midnight)</option>
+          <option value="0 0 * * 1">Weekly (Mon 00:00)</option>
+          <option value="0 0 1 * *">Monthly (1st day 00:00)</option>
+        </select>
+        <div class="form-text">Selecting a preset will fill the cron expression above.</div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Timezone</label>
+      <input class="form-control" formControlName="timezone" placeholder="Asia/Kolkata" />
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Start Date (optional)</label>
+        <input type="datetime-local" class="form-control" [ngModel]="form.value.start_date" (ngModelChange)="form.patchValue({start_date: $event})" />
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Max Active Runs</label>
+        <input type="number" min="1" class="form-control" formControlName="max_active_runs" />
+      </div>
+    </div>
+
+    <div class="form-check form-switch mb-2">
+      <input class="form-check-input" type="checkbox" role="switch" formControlName="catchup" id="catchupSwitch">
+      <label class="form-check-label" for="catchupSwitch">Catchup</label>
+    </div>
+
+    <div class="form-check form-switch mb-3">
+      <input class="form-check-input" type="checkbox" role="switch" formControlName="enabled" id="enabledSwitch">
+      <label class="form-check-label" for="enabledSwitch">Enabled</label>
+    </div>
+
+    <div *ngIf="nextRuns.length" class="mb-2">
+      <label class="form-label">Next Runs</label>
+      <ul class="mb-0">
+        <li *ngFor="let r of nextRuns">{{ r }}</li>
+      </ul>
+    </div>
+  </form>
+</div>
+
+<div class="modal-footer">
+  <button class="btn btn-outline-secondary" (click)="activeModal.dismiss()" [disabled]="saving">Cancel</button>
+  <button class="btn btn-primary" (click)="save()" [disabled]="saving">{{ saving ? 'Saving...' : 'Save' }}</button>
+</div>

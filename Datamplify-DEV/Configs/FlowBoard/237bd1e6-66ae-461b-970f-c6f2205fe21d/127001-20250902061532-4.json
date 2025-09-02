@@ -1,0 +1,63 @@
+{
+    "dag_name": "ccxzc",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_TGT_dimsample_test",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "TGT_dimsample_test",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "id_seq",
+                    "bigint",
+                    "id_seq",
+                    "bigint"
+                ],
+                [
+                    "o_sample_id",
+                    "character varying",
+                    "o_sample_id",
+                    "character varying"
+                ],
+                [
+                    "sample_id",
+                    "character varying",
+                    "sample_id",
+                    "character varying"
+                ],
+                [
+                    "flag",
+                    "integer",
+                    "flag",
+                    "integer"
+                ]
+            ]
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_dimsample_test_02",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "dimsample_test_02",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "SRC_TGT_dimsample_test"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_TGT_dimsample_test",
+            "TGT_dimsample_test_02"
+        ]
+    ],
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d",
+    "username": "sahithi12",
+    "dag_id": "127001-20250902061532-4",
+    "flow_name": "ccxzc"
+}

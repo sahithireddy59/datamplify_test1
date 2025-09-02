@@ -7,4 +7,5 @@ urlpatterns = [
     path('authentication/',include('authentication.urls')),
     path('taskplan/',include('TaskPlan.urls')),
     path('monitor/',include('Monitor.urls')),
+    path('scheduler/', include('app.scheduler.api.urls')),
 ]

@@ -101,6 +101,13 @@ export const admin: Routes = [
       },
 
       {
+        path: 'scheduling',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./scheduler-list/scheduler-list.component').then((m) => m.SchedulerListComponent),
+      },
+
+      {
         path: 'flowboardList/flowboard',
         canActivate: [authGuard],
         loadComponent: () =>

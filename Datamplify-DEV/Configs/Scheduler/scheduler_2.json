@@ -1,0 +1,12 @@
+{
+  "dag_id": "scheduler_2",
+  "name": "test_scheduling-scheduler",
+  "owner": "scheduler",
+  "mode": "trigger",
+  "schedule": "*/5 * * * *",
+  "start_date": "2025-09-02T11:05:46.798327Z",
+  "timezone": "Asia/Kolkata",
+  "catchup": false,
+  "max_active_runs": 1,
+  "target_dag_id": "127001-20250902110058-5"
+}

@@ -45,6 +45,11 @@ services:
       - postgres-db-volume:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    
+  
+      
+  # if you run workers, mount the same volumes there too
+
 
   redis:
     image: redis:latest
@@ -67,6 +72,8 @@ services:
       - ./requirements.txt:/requirements.txt
       - .:/opt/airflow/project
       - ./Configs:/opt/airflow/project/Configs
+      - ./Configs/FlowBoard:/opt/airflow/project/Configs/FlowBoard
+      - ./Configs/Scheduler:/opt/airflow/project/Configs/Scheduler
 
   airflow-scheduler:
     <<: *airflow-common
@@ -80,6 +87,8 @@ services:
       - ./requirements.txt:/requirements.txt
       - .:/opt/airflow/project
       - ./Configs:/opt/airflow/project/Configs
+      - ./Configs/FlowBoard:/opt/airflow/project/Configs/FlowBoard
+      - ./Configs/Scheduler:/opt/airflow/project/Configs/Scheduler
 
   airflow-worker:
     <<: *airflow-common
@@ -119,6 +128,8 @@ services:
       - ./requirements.txt:/requirements.txt
       - .:/opt/airflow/project
       - ./Configs:/opt/airflow/project/Configs
+
+  
 
 volumes:
   postgres-db-volume:

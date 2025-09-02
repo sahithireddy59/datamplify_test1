@@ -1,0 +1,58 @@
+<div class="page-header d-flex align-items-center justify-content-between">
+  <h4 class="page-title">Scheduling</h4>
+  <button class="btn btn-primary" (click)="create()">
+    <i class="fe fe-plus me-1"></i>
+    New Schedule
+  </button>
+</div>
+
+<div *ngIf="loading" class="text-muted">Loading...</div>
+
+<div class="card" *ngIf="!loading">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Mode</th>
+          <th>Schedule</th>
+          <th>Target</th>
+          <th>Enabled</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let it of items">
+          <td>{{ it.name }}</td>
+          <td>{{ it.mode }}</td>
+          <td>{{ it.schedule || 'Manual' }}</td>
+          <td>
+            <ng-container [ngSwitch]="it.mode">
+              <span *ngSwitchCase="'trigger'">{{ it.target_dag_id || '-' }}</span>
+              <span *ngSwitchCase="'bash'">bash -c</span>
+              <span *ngSwitchDefault>-</span>
+            </ng-container>
+          </td>
+          <td>
+            <span class="badge" [class.bg-success]="it.enabled" [class.bg-secondary]="!it.enabled">
+              {{ it.enabled ? 'Enabled' : 'Disabled' }}
+            </span>
+          </td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="edit(it)">
+              <i class="fe fe-edit"></i>
+              Edit
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="remove(it)" [disabled]="!it.id">
+              <i class="fe fe-trash"></i>
+              Delete
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="items.length === 0">
+          <td colspan="6" class="text-center text-muted py-4">No schedules yet</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

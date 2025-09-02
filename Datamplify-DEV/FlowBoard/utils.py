@@ -518,21 +518,7 @@ def Remove_duplicates(group_attributes, having_clause, task_id, dag_id, previous
 
     return {'status':200}
 
-
-# {
-#   "type": "Rank",
-#   "id": "rank_1",
-#   "previous_id": "SRC_Customers",
-#   "rank_by_cols": ["purchase_amount", "order_date"],
-#   "rank_type": "RANK",
-#   "partition_by_cols": ["region"],
-#   "output_col": "rank_value",
-#   "ascending": false,
-#   "include_ties": true
-# }
-
-
-def Rank(rank_by_cols, rank_type, partition_by_cols, output_col, dag_id, task_id, previous_id, target_hierarchy_id, user_id, sources, ascending=True, include_ties=True, **kwargs):
+def Rank(source_attributes,order_by_cols,partition_by_cols,rank_col_name,Records,rank_type, dag_id, task_id, previous_id, target_hierarchy_id, user_id, sort, **kwargs):
     """
     Assigns ranking values to rows in a dataset based on specified columns.
 
@@ -576,8 +562,8 @@ def Rank(rank_by_cols, rank_type, partition_by_cols, output_col, dag_id, task_id
         rank_function = 'RANK'
 
     # Format the ORDER BY clause
-    order_direction = "ASC" if ascending else "DESC"
-    order_by_clause = ", ".join([f'"{previous_id}"."{col}" {order_direction}' for col in rank_by_cols])
+    order_direction = ' DESC' if sort.lower() == 'top' else 'ASC'
+    order_by_clause = ", ".join([f'"{previous_id}"."{col}" {order_direction}' for col in order_by_cols])
 
     # Format the PARTITION BY clause if partition columns are provided
     partition_by_clause = ""
@@ -585,38 +571,25 @@ def Rank(rank_by_cols, rank_type, partition_by_cols, output_col, dag_id, task_id
         partition_by_str = ", ".join([f'"{previous_id}"."{col}"' for col in partition_by_cols])
         partition_by_clause = f"PARTITION BY {partition_by_str}"
 
-    # Build the column list for the SELECT statement
-    # Include all columns from the source table plus the rank column
-    column_query = f"""
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = '{schema}'
-        AND table_name = '{source_table_name}'
-        ORDER BY ordinal_position
-    """
+    
 
-    columns = []
-    with engine.connect() as conn1:
-        result = conn1.execute(text(column_query))
-        columns = [row[0] for row in result]
-
-    # Create attributes for Query_generator
-    source_attributes = [(col, 'string', f'"{previous_id}"."{col}"') for col in columns]
-    rank_attribute = [(output_col, 'string', f'{rank_function}() OVER ({partition_by_clause} ORDER BY {order_by_clause})')]
-
+    
+    rank_attribute = [(rank_col_name, 'Integer', f'{rank_function}() OVER ({partition_by_clause} ORDER BY {order_by_clause})')]
+    where_condtion = rank_col_name <= Records
     # Generate the query using Query_generator
     from_clause = (source_table_name, previous_id)
     generated_query = Query_generator(
         source_attributes=source_attributes,
         attributes=rank_attribute,
         from_clause=from_clause,
-        schema=schema
+        schema=schema,
+        where_clause=where_condtion
     )
 
     # Create CTE
     cte = f""" "{task_id}" AS (
-{generated_query}
-)"""
+        {generated_query}
+        )"""
     logger.info(f"[Rank Transformation] Generated query with Query_generator:\n{cte}")
 
     # Execute the query and create the target table using the generated query
@@ -712,15 +685,15 @@ def Normalizer(group_by_cols, pivot_col, value_cols, output_cols, dag_id, task_i
             where_clause=where_clause
         )
 
-        union_queries.append(generated_query)
+    #     union_queries.append(generated_query)
 
-    # Combine all queries with UNION ALL
-    combined_query = " UNION ALL ".join(union_queries)
+    # # Combine all queries with UNION ALL
+    # combined_query = " UNION ALL ".join(union_queries)
 
     # Create CTE
     cte = f""" "{task_id}" AS (
-{combined_query}
-)"""
+        {combined_query}
+        )"""
     logger.info(f"[Normalizer Transformation] Generated query with Query_generator:\n{cte}")
 
     # Execute the combined query and create the target table
@@ -746,6 +719,89 @@ def Normalizer(group_by_cols, pivot_col, value_cols, output_cols, dag_id, task_i
     return target_table_name
 
 
+def Pivot(group_by_cols,pivot_col,value_col,agg_func,pivot_values,dag_id,task_id,previous_id,target_hierarchy_id,user_id,**kwargs):
+    """
+    Pivot transformation: Converts rows into columns based on pivot column values.
+
+    Args:
+        group_by_cols (list): Columns to keep as-is (remain in output).
+        pivot_col (str): Column whose distinct values become new columns.
+        value_col (str): Column to aggregate (e.g. sales amount).
+        agg_func (str): Aggregation function to apply (SUM, AVG, COUNT...).
+        pivot_values (list): Explicit values in pivot_col that become columns.
+        dag_id (str): DAG identifier.
+        task_id (str): Task identifier.
+        previous_id (str): Previous task identifier to pull data from.
+        target_hierarchy_id (str): Target hierarchy identifier.
+        user_id (str): User identifier.
+        **kwargs: Additional keyword args (e.g. Airflow task instance).
+
+    Returns:
+        str: Name of the created pivoted table.
+    """
+
+    conn = duckdb.connect(database=":memory:")
+    engine_data = generate_engine(target_hierarchy_id, user_id)
+    engine = engine_data["engine"]
+    schema = engine_data["schema"]
+    conn_str = str(engine.url)
+
+    conn.sql(f"ATTACH '{conn_str}' AS pg_db (TYPE POSTGRES, SCHEMA '{schema}');")
+
+    ti = kwargs["ti"]
+    unix_suffix = int(time.time())
+    target_table_name = f"extracted_{task_id}_{unix_suffix}"
+
+    # Get source table name from XCom
+    table_name = ti.xcom_pull(task_ids=previous_id, key=previous_id)
+
+
+    # Build SELECT list
+    # group by cols
+    # for col in group_by_cols:
+    #     select_parts.append(f't."{col}"')
+
+    # pivoted cols
+    attributes = []
+
+    for val in pivot_values:
+        col_expr = f"""{agg_func}(CASE WHEN {previous_id}."{pivot_col}" = '{val}' THEN {previous_id}."{value_col}" ELSE 0 END)"""
+        col_list = [val,"",col_expr]
+        attributes.append(col_list)
+
+
+
+    # Final query
+    from_clause = (table_name, previous_id)
+    generated_query = Query_generator(
+        attributes=attributes,
+        from_clause=from_clause,
+        schema=schema,
+        group_by_clause=group_by_cols
+    )
+    cte = f""" "{task_id}" AS (\n{generated_query}\n)"""
+    logger.info(f"[Pivot Transformation] Generated Query:\n{cte}")
+
+    # Execute and create target table
+    with engine.begin() as conn1:
+        conn1.execute(text(f"""
+            CREATE TABLE "{schema}"."{target_table_name}" AS
+            WITH {cte} SELECT * FROM "{task_id}";
+        """))
+
+    # Count records
+    result = conn.sql(f"""SELECT * FROM postgres_query('pg_db', $$WITH  {cte} SELECT count(*) FROM "{task_id}" $$);""")
+    logger.info(f""" [Filter Query]\n WITH {cte} SELECT * FROM "{task_id}" """)
+    logger.info(f"Total Records: {result.fetchone()[0]}")
+    with engine.begin() as conn1:
+        conn1.execute(text(f""" 
+            CREATE TABLE "{schema}"."{target_table_name}" AS
+            WITH {cte} SELECT * FROM "{task_id}";
+        """))
+    kwargs['ti'].xcom_push(key=task_id, value=target_table_name)
+    conn.sql("DETACH pg_db")
+
+    return cte
 
 # previous_ids = ['task1', 'task2']
 # column_mappings = [
@@ -778,7 +834,7 @@ def Normalizer(group_by_cols, pivot_col, value_cols, output_cols, dag_id, task_i
 
 # kwargs = {'ti': ti}
 
-def Union(previous_ids, column_mappings, remove_duplicates, dag_id, task_id, target_hierarchy_id, user_id, **kwargs):
+def Union(previous_ids, column_mappings, type, dag_id, task_id, target_hierarchy_id, user_id, **kwargs):
     """
     Combines data from multiple input sources into a single output, similar to Informatica Union transformation.
 
@@ -824,10 +880,10 @@ def Union(previous_ids, column_mappings, remove_duplicates, dag_id, task_id, tar
 
         for output_col, source_cols in column_mappings:
             if idx < len(source_cols) and source_cols[idx]:  # If this source has a mapping for this column
-                attributes.append((output_col, 'string', f'"{source_cols[idx]}"'))
+                attributes.append((output_col, '', f'"{source_cols[idx]}"'))
             else:
                 # If no mapping exists, use NULL with appropriate casting
-                attributes.append((output_col, 'string', 'NULL'))
+                attributes.append((output_col, '', 'NULL'))
 
         # Generate query for this source
         from_clause = (source_table, source_table)
@@ -841,13 +897,12 @@ def Union(previous_ids, column_mappings, remove_duplicates, dag_id, task_id, tar
         union_queries.append(generated_query)
 
     # Combine all source queries with UNION or UNION ALL
-    union_operator = 'UNION' if remove_duplicates else 'UNION ALL'
-    combined_query = f" {union_operator} ".join(union_queries)
+    combined_query = f" {type} ".join(union_queries)
 
     # Create CTE
     cte = f""" "{task_id}" AS (
-{combined_query}
-)"""
+        {combined_query}
+        )"""
     logger.info(f"[Union Transformation] Generated query with Query_generator:\n{cte}")
 
     # Execute the combined query and create the target table
@@ -1154,16 +1209,13 @@ def Router(conditions, dag_id, task_id, previous_id, target_hierarchy_id, user_i
             """))
 
         # Store the output table name
-        result_tables[output_name] = output_table_name
+        result_tables[output_name] = cte
 
         # Push to XCom for each output path
-        ti.xcom_push(key=f"{task_id}_{output_name}", value=output_table_name)
+        ti.xcom_push(key=f"{output_name}", value=output_table_name)
 
     # Store the routing map in XCom
-    ti.xcom_push(key=task_id, value=result_tables)
+        ti.xcom_push(key=f"{output_name}", value=cte)
     conn.sql("DETACH pg_db")
 
     return result_tables
-
-
-

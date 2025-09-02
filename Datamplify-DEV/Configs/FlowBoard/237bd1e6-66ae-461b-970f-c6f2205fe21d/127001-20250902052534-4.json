@@ -1,0 +1,165 @@
+{
+    "dag_name": "test_02",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_audit_data",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "audit_data",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "id",
+                    "integer",
+                    "id",
+                    "integer"
+                ],
+                [
+                    "current_user",
+                    "character varying",
+                    "current_user",
+                    "character varying"
+                ],
+                [
+                    "sample_id",
+                    "character varying",
+                    "sample_id",
+                    "character varying"
+                ],
+                [
+                    "output_category",
+                    "character varying",
+                    "output_category",
+                    "character varying"
+                ],
+                [
+                    "timestamp",
+                    "timestamp without time zone",
+                    "timestamp",
+                    "timestamp without time zone"
+                ],
+                [
+                    "sc_no",
+                    "character varying",
+                    "sc_no",
+                    "character varying"
+                ],
+                [
+                    "latitude",
+                    "character varying",
+                    "latitude",
+                    "character varying"
+                ],
+                [
+                    "longitude",
+                    "character varying",
+                    "longitude",
+                    "character varying"
+                ],
+                [
+                    "time_zone",
+                    "character varying",
+                    "time_zone",
+                    "character varying"
+                ],
+                [
+                    "country",
+                    "character varying",
+                    "country",
+                    "character varying"
+                ],
+                [
+                    "country_code",
+                    "character varying",
+                    "country_code",
+                    "character varying"
+                ],
+                [
+                    "city",
+                    "character varying",
+                    "city",
+                    "character varying"
+                ],
+                [
+                    "state",
+                    "character varying",
+                    "state",
+                    "character varying"
+                ],
+                [
+                    "zipcode",
+                    "character varying",
+                    "zipcode",
+                    "character varying"
+                ],
+                [
+                    "device_type",
+                    "character varying",
+                    "device_type",
+                    "character varying"
+                ],
+                [
+                    "isp",
+                    "character varying",
+                    "isp",
+                    "character varying"
+                ],
+                [
+                    "ip_address",
+                    "character varying",
+                    "ip_address",
+                    "character varying"
+                ],
+                [
+                    "os",
+                    "character varying",
+                    "os",
+                    "character varying"
+                ],
+                [
+                    "report_type",
+                    "USER-DEFINED",
+                    "report_type",
+                    "USER-DEFINED"
+                ],
+                [
+                    "user_type",
+                    "USER-DEFINED",
+                    "user_type",
+                    "USER-DEFINED"
+                ],
+                [
+                    "scheduler_type",
+                    "USER-DEFINED",
+                    "scheduler_type",
+                    "USER-DEFINED"
+                ]
+            ]
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_audit_test1",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "audit_test1",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "SRC_audit_data"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_audit_data",
+            "TGT_audit_test1"
+        ]
+    ],
+    "dag_id": "127001-20250902052534-4",
+    "flow_name": "test_02",
+    "username": "sahithi12",
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d"
+}

@@ -1,0 +1,12 @@
+{
+  "dag_id": "scheduler_1",
+  "name": "ccxzc-scheduler",
+  "owner": "scheduler",
+  "mode": "trigger",
+  "schedule": "*/5 * * * *",
+  "start_date": "2025-09-02T06:45:16.672474Z",
+  "timezone": "Asia/Kolkata",
+  "catchup": true,
+  "max_active_runs": 1,
+  "target_dag_id": "127001-20250902061532-4"
+}

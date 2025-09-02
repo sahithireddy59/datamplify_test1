@@ -46,8 +46,7 @@
                         <thead class="table-primary bg-primary table-primary-position">
                             <tr>
                                 <th>Title</th>
-                                <th>Created At</th>
-                                <th>Last Modified</th>
+                                <th>Schedule</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -65,10 +64,16 @@
                                         <!-- </div> -->
                                     </div>
                                 </td>
-                                <td> {{dataFlow.created_at | date: 'yyyy-MM-dd HH:mm:ss' }} </td>
-                                <td> {{dataFlow.updated_at | date: 'yyyy-MM-dd HH:mm:ss' }} </td>
+                                <td>
+                                    <span *ngIf="dataFlow.has_scheduler" class="badge bg-success">Scheduled</span>
+                                    <span *ngIf="!dataFlow.has_scheduler" class="badge bg-secondary">Not scheduled</span>
+                                </td>
                                 <td>
                                     <div class="hstack gap-2 fs-1">
+                                        <button class="btn btn-icon btn-sm btn-secondary-light btn-wave waves-effect waves-light"
+                                            (click)="openScheduler(dataFlow)" [ngbTooltip]="dataFlow.has_scheduler ? 'Edit schedule' : 'Add schedule'">
+                                            <i class="ri-time-line" [class.text-success]="dataFlow.has_scheduler"></i>
+                                        </button>
                                         <button class="btn btn-icon btn-sm btn-info-light btn-wave waves-effect waves-light"
                                             (click)="editFlowboard(dataFlow.id)">
                                             <i class="ri-edit-line"></i>
@@ -115,6 +120,9 @@
                                             <a class="dropdown-item" (click)="editFlowboard(dataFlow.id)">
                                                 <i class="fe fe-edit me-2 d-inline-flex"></i>edit
                                             </a>
+                                            <a class="dropdown-item" (click)="openScheduler(dataFlow)">
+                                                <i class="fe fe-clock me-2 d-inline-flex"></i>schedule
+                                            </a>
                                             <a class="dropdown-item  btn btn-secondary-light" (click)="deleteFlowboard(dataFlow)">
                                                 <i class="fe fe-trash me-2 d-inline-flex"></i>delete
                                             </a>
@@ -128,18 +136,12 @@
                                     <div class="col-md-12">
                                         <div class="row">
                                             <div class="col-md-5">
-                                                <span class="fw-semibold fs-14">Created On: </span>
+                                                <span class="fw-semibold fs-14">Schedule: </span>
                                             </div>
                                             <div class="col-md-7">
-                                                <span class="fs-14"> {{dataFlow.created_at | date: 'yyyy-MM-dd HH:mm:ss' }} </span>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-5">
-                                                <span class="fw-semibold fs-14">Last Modified: </span>
-                                            </div>
-                                            <div class="col-md-7">
-                                                <span class="fs-14"> {{dataFlow.updated_at | date: 'yyyy-MM-dd HH:mm:ss' }} </span>
+                                                <span class="fs-14" [class.text-success]="dataFlow.has_scheduler">
+                                                    {{ dataFlow.has_scheduler ? 'Scheduled' : 'Not scheduled' }}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

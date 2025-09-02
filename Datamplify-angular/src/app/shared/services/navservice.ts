@@ -309,6 +309,19 @@ export class NavService implements OnDestroy {
       type: 'link',
       nochild: true,
     },
+    {
+      title: 'Scheduling',
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
+      <path d="M0 0h24v24H0V0z" fill="none"></path>
+      <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 21c0 1.1.89 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H5V8h14v13zM7 10h5v5H7z"></path>
+      </svg>`,
+      active: false,
+      badgeClass: 'badge badge-sm bg-secondary badge-hide',
+      badgeValue: 'new',
+      path: 'datamplify/scheduling',
+      type: 'link',
+      nochild: true,
+    },
     // {
     //   title: 'Data Points',
     //   icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="side-menu__icon">
