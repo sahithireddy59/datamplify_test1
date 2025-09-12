@@ -361,6 +361,57 @@ def Loading(hierarchy_id,user_id,dag_id,truncate,create,format,previous_id,targe
 # ... (rest of the code remains the same)
 
 
+def _quote_bare_words_in_condition(condition: str) -> str:
+    """
+    Quote bare, unquoted word literals on the right side of comparisons and inside IN lists.
+    Examples:
+      dept=IT -> dept = 'IT'
+      dept IN (IT, HR) -> dept IN ('IT','HR')
+    Leaves numbers, NULL/TRUE/FALSE, and already quoted strings unchanged.
+    """
+    try:
+        # Handle IN (...) lists first
+        def quote_in_list(m):
+            inner = m.group(1)
+            parts = [p.strip() for p in inner.split(',') if p.strip()]
+            quoted = []
+            for p in parts:
+                # Already quoted
+                if (p.startswith("'") and p.endswith("'")) or (p.startswith('"') and p.endswith('"')):
+                    quoted.append(p)
+                # Numeric
+                elif re.fullmatch(r"[-+]?\d+(?:\.\d+)?", p, flags=re.IGNORECASE):
+                    quoted.append(p)
+                # NULL/TRUE/FALSE
+                elif p.upper() in {"NULL", "TRUE", "FALSE"}:
+                    quoted.append(p.upper())
+                else:
+                    quoted.append(f"'{p}'")
+            return f"IN ({','.join(quoted)})"
+
+        condition = re.sub(r"(?i)\bIN\s*\(([^)]*)\)", quote_in_list, condition)
+
+        # Handle binary comparisons =, !=, <>, >=, <=, >, <
+        def quote_binary(m):
+            op = m.group(1)
+            rhs = m.group(2)
+            # Already quoted
+            if (rhs.startswith("'") and rhs.endswith("'")) or (rhs.startswith('"') and rhs.endswith('"')):
+                return f"{op} {rhs}"
+            # Numeric
+            if re.fullmatch(r"[-+]?\d+(?:\.\d+)?", rhs, flags=re.IGNORECASE):
+                return f"{op} {rhs}"
+            # NULL/TRUE/FALSE
+            if rhs.upper() in {"NULL", "TRUE", "FALSE"}:
+                return f"{op} {rhs.upper()}"
+            return f"{op} '{rhs}'"
+
+        condition = re.sub(r"\s*(=|!=|<>|>=|<=|>|<)\s*([A-Za-z_][A-Za-z0-9_]*)\b", quote_binary, condition)
+        return condition
+    except Exception:
+        return condition
+
+
 def Router(conditions, dag_id, task_id, previous_id, target_hierarchy_id, user_id, **kwargs):
     """
     Route data based on conditions to different output paths.
@@ -397,6 +448,8 @@ def Router(conditions, dag_id, task_id, previous_id, target_hierarchy_id, user_i
 
     # Process each condition and create corresponding output tables
     for condition, output_name in conditions:
+        # Sanitize condition: auto-quote bare words for string comparisons (dept=IT -> dept = 'IT')
+        condition = _quote_bare_words_in_condition(condition)
         output_table_name = f"extracted_{task_id}_{output_name}_{unix_suffix}"
 
         # Generate query with the specific condition
