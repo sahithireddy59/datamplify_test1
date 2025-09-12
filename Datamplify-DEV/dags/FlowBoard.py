@@ -350,6 +350,27 @@ def task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map
             python_callable=_make_callable_args('FlowBoard.utils', 'Join'),
             op_args=[task_conf['primary_table'], task_conf['joining_list'], task_conf['where_clause'], dag_id, task_id, task_conf['previous_task_id'], task_conf.get('attributes', ''), target_hierarchy_id, user_id, source_id]
         )
+    elif task_type == "Rank":
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Rank'),
+            op_args=[
+                task_conf.get('source_attributes', ''),
+                task_conf.get('order_by_cols', []),
+                task_conf.get('partition_by_cols', []),
+                task_conf.get('rank_col_name', 'rank_column'),
+                task_conf.get('records', 0),
+                task_conf.get('rank_type', 'ROW_NUMBER'),
+                dag_id,
+                task_id,
+                task_conf['previous_task_id'],
+                target_hierarchy_id,
+                user_id,
+                task_conf.get('sort', 'ASC')
+            ]
+        )
+    
+    task_map[task_id] = task
     return task_map
 
 
@@ -383,6 +404,10 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
 
         overall_task_list = []
         task_map = {}
+        
+        # Add system tasks to task_map
+        task_map['__init_global_params'] = init_param_task
+        task_map[GLOBAL_PARAM_HOLDER] = global_store_task
         for task_conf in config['tasks']:
             task_conf = replace_params_in_json(task_conf,xcom_cache=None,parent_task_name = None,**kwargs)
             parameter_task= None
@@ -406,10 +431,21 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
             },
             trigger_rule=TriggerRule.ALL_DONE,  # This ensures it runs no matter what
         )
+        
+        # Add cleanup task to task_map
+        task_map['cleanup_temporary_tables'] = cleanup_task
 
+        # Set up task dependencies
         if config.get('flow',[]):
+            # Connect init_param_task to first task in flow
+            first_task = config.get('flow')[0][0]
+            init_param_task >> task_map[first_task]
+            
+            # Connect flow tasks
             for parent, child in config.get('flow', []):
                 task_map[parent] >> task_map[child]
+            
+            # Connect last task to cleanup
             last_task = config.get('flow')[-1][-1]
             task_map[last_task] >> cleanup_task
         else:
@@ -481,5 +517,8 @@ def get_configs():
 for config in get_configs():
     try:
         globals()[config['dag_id']] = generate_dynamic_dag(config['dag_id'], config['user_id'], config['username'], config)
+        print(f"[INFO] Successfully created DAG: {config['dag_id']}")
     except Exception as e:
-        pass
+        print(f"[ERROR] Failed to create DAG {config.get('dag_id', 'unknown')}: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")

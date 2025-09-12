@@ -1,0 +1,103 @@
+{
+    "dag_name": "test_router",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_src_employee",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "src_employee",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "empid",
+                    "integer",
+                    "empid",
+                    "integer"
+                ],
+                [
+                    "emp",
+                    "text",
+                    "emp",
+                    "text"
+                ],
+                [
+                    "dept",
+                    "text",
+                    "dept",
+                    "text"
+                ],
+                [
+                    "salary",
+                    "integer",
+                    "salary",
+                    "integer"
+                ]
+            ]
+        },
+        {
+            "type": "Router",
+            "id": "router_1",
+            "conditions": [
+                [
+                    "dept=IT",
+                    "IT"
+                ],
+                [
+                    "dept=HR",
+                    "HR"
+                ],
+                [
+                    "dept=us",
+                    "us"
+                ]
+            ],
+            "previous_task_id": "SRC_src_employee"
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_DEPT_IT",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "DEPT_IT",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "router_1"
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_DEPT_hR",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "DEPT_hR",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "router_1"
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_default_router",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "default_router",
+            "truncate": false,
+            "create": true
+        }
+    ],
+    "flow": [
+        [
+            "SRC_src_employee",
+            "router_1"
+        ]
+    ],
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d",
+    "username": "sahithi12",
+    "dag_id": "127001-20250909065902-8",
+    "flow_name": "test_router"
+}

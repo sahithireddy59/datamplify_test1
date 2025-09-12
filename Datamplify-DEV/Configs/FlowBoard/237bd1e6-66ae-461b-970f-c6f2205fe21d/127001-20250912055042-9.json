@@ -1,0 +1,93 @@
+{
+    "dag_name": "test_router2",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_src_employee",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "src_employee",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "empid",
+                    "integer",
+                    "empid",
+                    "integer"
+                ],
+                [
+                    "emp",
+                    "text",
+                    "emp",
+                    "text"
+                ],
+                [
+                    "dept",
+                    "text",
+                    "dept",
+                    "text"
+                ],
+                [
+                    "salary",
+                    "integer",
+                    "salary",
+                    "integer"
+                ]
+            ]
+        },
+        {
+            "type": "Router",
+            "id": "router_1",
+            "conditions": [
+                [
+                    "dept=IT",
+                    "it"
+                ]
+            ],
+            "previous_task_id": "SRC_src_employee"
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_router_default",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "router_default",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "router_1"
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_router_it",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "router_it",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "router_1"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_src_employee",
+            "router_1"
+        ],
+        [
+            "router_1",
+            "TGT_router_default"
+        ],
+        [
+            "router_1",
+            "TGT_router_it"
+        ]
+    ],
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d",
+    "username": "sahithi12",
+    "dag_id": "127001-20250912055042-9",
+    "flow_name": "test_router2"
+}

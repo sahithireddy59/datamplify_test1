@@ -1,0 +1,79 @@
+{
+    "dag_name": "test_rank",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_src_employee",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "src_employee",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "empid",
+                    "integer",
+                    "empid",
+                    "integer"
+                ],
+                [
+                    "emp",
+                    "text",
+                    "emp",
+                    "text"
+                ],
+                [
+                    "dept",
+                    "text",
+                    "dept",
+                    "text"
+                ],
+                [
+                    "salary",
+                    "integer",
+                    "salary",
+                    "integer"
+                ]
+            ]
+        },
+        {
+            "type": "Rank",
+            "id": "rank_1",
+            "previous_task_id": "SRC_src_employee",
+            "source_attributes": [],
+            "order_by_cols": ["salary"],
+            "partition_by_cols": ["dept"],
+            "rank_col_name": "rank_column",
+            "records": 2,
+            "rank_type": "ROW_NUMBER",
+            "sort": "DESC"
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_tgt_emp_rank1",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "TGT_tgt_emp_rank1",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "rank_1"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_src_employee",
+            "rank_1"
+        ],
+        [
+            "rank_1",
+            "TGT_tgt_emp_rank1"
+        ]
+    ],
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d",
+    "username": "sahithi12",
+    "dag_id": "127001-20250903050246-6",
+    "flow_name": "test_rank"
+}

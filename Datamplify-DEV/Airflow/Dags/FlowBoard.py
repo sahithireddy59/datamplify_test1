@@ -4,54 +4,53 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.operators.empty import EmptyOperator
 from datetime import datetime
-import os, json, sys, django, textwrap, uuid
+import os, json, sys, django, textwrap, glob
 from airflow.providers.smtp.operators.smtp import EmailOperator
 from airflow.sensors.python import PythonSensor
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.utils.task_group import TaskGroup
-from airflow.utils.state import State
-import traceback
-from airflow.utils import timezone as airflow_tz
-from datetime import timezone as dt_timezone
-from airflow.exceptions import AirflowFailException
-import pendulum
-
 # FlowBoard Functionalities:
 # 1.Expression,
 # 2.Joins
 # 3.Remove duplicates
 # 4.Filter
 # 5.Extraction
-import sys
-sys.path.insert(0, "/opt/airflow/project")
+# 6.Rank
+import importlib
+from importlib import import_module
 
-from django_setup import setup_django
-setup_django()
-  # Ensures Django is ready
+def _setup_django_if_available():
+    """
+    Initialize Django only when running inside Airflow worker/scheduler where
+    the project is mounted at /opt/airflow/project and Django is available.
+    Safe no-op if not available to keep DAG parse working.
+    """
+    try:
+        # django_setup.py expected at project root
+        dj_setup = import_module('django_setup')
+        if hasattr(dj_setup, 'setup_django'):
+            dj_setup.setup_django()
+    except Exception:
+        # Ignore – allow DAG to parse without Django
+        pass
 
-from Datamplify import settings 
-from TaskPlan.utils import run_sql_commands 
-from FlowBoard.utils import (Extraction,Loading,ETL_Filter,Remove_duplicates,Expressions,Join,Rank,Union,Router,Normalizer)
-from Connections.utils import generate_engine
-from Monitor.models import RunHistory
+def _call_func(module_path: str, func_name: str, *args, **kwargs):
+    _setup_django_if_available()
+    mod = import_module(module_path)
+    fn = getattr(mod, func_name)
+    return fn(*args, **kwargs)
 
+def _make_callable_kwargs(module_path: str, func_name: str):
+    def _inner(**op_kwargs):
+        return _call_func(module_path, func_name, **op_kwargs)
+    return _inner
+
+def _make_callable_args(module_path: str, func_name: str):
+    def _inner(*op_args, **op_kwargs):
+        return _call_func(module_path, func_name, *op_args, **op_kwargs)
+    return _inner
 
 GLOBAL_PARAM_HOLDER = '__global_param_store__'
-
-
-# def check_dag_status(**context):
-#     ti = context['ti']
-#     dag_run = ti.get_dagrun()
-#     failed_tasks = []
-
-#     for task_instance in dag_run.get_task_instances():
-#         if task_instance.task_id not in ['dag_success_marker', 'cleanup_temporary_tables'] \
-#                 and task_instance.state != State.SUCCESS:
-#             failed_tasks.append((task_instance.task_id, task_instance.state))
-
-
-#     if failed_tasks:
-#         raise Exception(f"DAG failed due to task(s): {failed_tasks}")
 
 def cleanup_on_success(tasks_list,user_id,hierarchy_id,**kwargs):
     """
@@ -61,6 +60,13 @@ def cleanup_on_success(tasks_list,user_id,hierarchy_id,**kwargs):
     if not user_id or not hierarchy_id:
         return
 
+    # Lazy import to avoid Django dependency at parse time
+    _setup_django_if_available()
+    try:
+        from Service.utils import generate_engine
+    except Exception:
+        # If not available, skip cleanup silently
+        return
     engine_data = generate_engine(hierarchy_id, user_id)
     engine = engine_data['engine']
     schema = engine_data['schema']
@@ -69,40 +75,8 @@ def cleanup_on_success(tasks_list,user_id,hierarchy_id,**kwargs):
 
         if table_name and table_name is not None:
             with engine.connect() as cursor:
-                cursor.execute(f'DROP TABLE IF EXISTS "{schema}"."{table_name}"')
+                cursor.execute(f'DROP TABLE IF EXISTS "{table_name}"')
 import re
-now = datetime.now(dt_timezone.utc)
-
-def fail_task(**kwargs):
-    raise AirflowFailException("Upstream task failed — DAG marked failed.")
-
-# from airflow.operators.dummy import DummyOperator
-def dag_success_callback(context):
-    dag_run = context["dag_run"]
-    run_id = dag_run.run_id
-    dag_id = dag_run.dag_id
-
-    RunHistory.objects.filter(
-        run_id=run_id,
-        source_id=dag_id
-    ).update(
-        status="success",
-        finished_at=now
-    )
-
-
-def dag_failure_callback(context):
-    dag_run = context["dag_run"]
-    run_id = dag_run.run_id
-    dag_id = dag_run.dag_id
-
-    RunHistory.objects.filter(
-        run_id=run_id,
-        source_id=dag_id
-    ).update(
-        status="failed",
-        finished_at=now
-    )
 
 def resolve_value(val, ti, xcom_cache, parent_task_name):
     """
@@ -212,7 +186,9 @@ def create_sql_param_task(param, user_id):
     """
     def _sql_param_fn(**kwargs):
         ti = kwargs['ti']
-        result = run_sql_commands(param['query'], param['database'], user_id)
+        # Lazy import to avoid Django dependency at parse time
+        _setup_django_if_available()
+        result = _call_func('Service.utils', 'run_sql_commands', param['query'], param['database'], user_id)
         value = cast_output_by_type(result, param['data_type'])
         ti.xcom_push(key=param['param_name'], value=value)
 
@@ -299,7 +275,9 @@ def Loop_parameters(task_details, user_id, **kwargs):
     if task_details['loop_type'] == 'command':
         return_value = run_external_command(task_details['command'], task_details['return_type'], task_details['fail'])
     elif task_details['loop_type'] == 'sql':
-        result = run_sql_commands(task_details['command'], task_details['hierarchy_id'], user_id)
+        # Lazy import and call
+        _setup_django_if_available()
+        result = _call_func('Service.utils', 'run_sql_commands', task_details['command'], task_details['hierarchy_id'], user_id)
         return_value = cast_output_by_type(result, task_details['return_type'])
 
     ti.xcom_push(key=param_name, value=return_value)
@@ -314,183 +292,123 @@ def task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map
     task_id = task_conf['id']
     task_type = task_conf['type']
     # overall_task_list.append(task_id)
-    match task_type:
-        case 'source_data_object':
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Extraction,
-                op_kwargs={
-                    'dag_id': dag_id,
-                    'task_id': task_id,
-                    'source_type': task_conf['format'],
-                    'path': task_conf['path'],
-                    'hierarchy_id': task_conf['hierarchy_id'],
-                    'user_id': user_id,
-                    'source_table_name': task_conf['source_table_name'],
-                    'source_attributes': task_conf.get('source_attributes', ''),
-                    "attributes": task_conf.get('attributes', ''),
-                    "target_hierarchy_id": target_hierarchy_id
-                }
-            )
-        case "target_data_object":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Loading,
-                op_kwargs={
-                    'hierarchy_id': task_conf['hierarchy_id'],
-                    'user_id': user_id,
-                    'dag_id': dag_id,
-                    'truncate': task_conf['truncate'],
-                    'create': task_conf['create'],
-                    'format': task_conf['format'],
-                    'previous_id': task_conf['previous_task_id'],
-                    'target_table_name': task_conf['target_table_name'],
-                    'attribute_mapper': task_conf.get('attribute_mapper', ''),
-                    'sources': source_id
-                }
-            )
-        case "Filter":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=ETL_Filter,
-                op_args=[task_conf['filter_conditions'], dag_id, task_id, task_conf['previous_task_id'], target_hierarchy_id, user_id, source_id]
-            )
-        case  "Expression":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Expressions,
-                op_args=[task_conf['expressions_list'], dag_id, task_id, task_conf['previous_task_id'], target_hierarchy_id, user_id, source_id]
-            )
-        case  "Rollup":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Remove_duplicates,
-                op_args=[task_conf['group_attributes'], task_conf['having_clause'], task_id, dag_id, task_conf['previous_task_id'], task_conf.get('attributes', ''), target_hierarchy_id, user_id, source_id]
-            )
-        case  "Joiner":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Join,
-                op_args=[task_conf['primary_table'], task_conf['joining_list'], task_conf['where_clause'], dag_id, task_id, task_conf['previous_task_id'], task_conf.get('attributes', ''), target_hierarchy_id, user_id, source_id]
-            )
-        case "Rank":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Rank,
-                op_args=[
-                    task_conf['rank_by_cols'],['rank_type'],
-                    task_conf.get('partition_by_cols', []),
-                    task_conf['output_col'],
-                    dag_id,
-                    task_id,
-                    task_conf['previous_task_id'],
-                    target_hierarchy_id,
-                    user_id,
-                ],
-                op_kwargs={
-                    'ascending': task_conf.get('ascending', True),
-                    'include_ties': task_conf.get('include_ties', True)
-                }
-            )
 
-        case "Union":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Union,
-                op_args=[task_conf['previous_ids'], task_conf['column_mappings'], task_conf['remove_duplicates'], dag_id, task_id, target_hierarchy_id, user_id]
-            )
-
-        case "Router":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Router,
-                op_args=[task_conf['conditions'], dag_id, task_id, task_conf['previous_task_id'], target_hierarchy_id, user_id]
-            )
-        case "Normalizer":
-            task = PythonOperator(
-                task_id=task_id,
-                python_callable=Normalizer,
-                op_args=[
-                    task_conf['group_by_cols'],
-                    task_conf['pivot_col'],
-                    task_conf['value_cols'],
-                    task_conf['output_cols'],
-                    dag_id,
-                    task_id,
-                    task_conf['previous_task_id'],
-                    target_hierarchy_id,
-                    user_id
-                ],
-                op_kwargs={}
-            )
-
-        case _:
-            raise ValueError(f"Unsupported task type: '{task_type}' for task ID '{task_id}'")
-        
+    if task_type == 'source_data_object':
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_kwargs('FlowBoard.utils', 'Extraction'),
+            op_kwargs={
+                'dag_id': dag_id,
+                'task_id': task_id,
+                'source_type': task_conf['format'],
+                'path': task_conf['path'],
+                'hierarchy_id': task_conf['hierarchy_id'],
+                'user_id': user_id,
+                'source_table_name': task_conf['source_table_name'],
+                'source_attributes': task_conf.get('source_attributes', ''),
+                "attributes": task_conf.get('attributes', ''),
+                "target_hierarchy_id": target_hierarchy_id
+            }
+        )
+    elif task_type == "target_data_object":
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_kwargs('FlowBoard.utils', 'Loading'),
+            op_kwargs={
+                'hierarchy_id': task_conf['hierarchy_id'],
+                'user_id': user_id,
+                'dag_id': dag_id,
+                'truncate': task_conf['truncate'],
+                'create': task_conf['create'],
+                'format': task_conf['format'],
+                'previous_id': task_conf['previous_task_id'],
+                'target_table_name': task_conf['target_table_name'],
+                'attribute_mapper': task_conf.get('attribute_mapper', ''),
+                'sources': source_id
+            }
+        )
+    elif task_type == "Filter":
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_args('FlowBoard.utils', 'ETL_Filter'),
+            op_args=[task_conf['filter_conditions'], dag_id, task_id, task_conf['previous_task_id'], target_hierarchy_id, user_id, source_id]
+        )
+    elif task_type == "Expression":
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Expressions'),
+            op_args=[task_conf['expressions_list'], dag_id, task_id, task_conf['previous_task_id'], target_hierarchy_id, user_id, source_id]
+        )
+    elif task_type == "Rollup":
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Remove_duplicates'),
+            op_args=[task_conf['group_attributes'], task_conf['having_clause'], task_id, dag_id, task_conf['previous_task_id'], task_conf.get('attributes', ''), target_hierarchy_id, user_id, source_id]
+        )
+    elif task_type == "Joiner":
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Join'),
+            op_args=[task_conf['primary_table'], task_conf['joining_list'], task_conf['where_clause'], dag_id, task_id, task_conf['previous_task_id'], task_conf.get('attributes', ''), target_hierarchy_id, user_id, source_id]
+        )
+    elif task_type == "Rank":
+        # Get order_by_cols from config - it's now optional
+        order_by_cols = task_conf.get('order_by_cols', [])
+            
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Rank'),
+            op_args=[
+                task_conf.get('source_attributes', []),
+                order_by_cols,
+                task_conf.get('partition_by_cols', []),
+                task_conf.get('rank_col_name', 'rank_column'),
+                task_conf.get('records', 0),
+                task_conf.get('rank_type', 'ROW_NUMBER'),
+                dag_id,
+                task_id,
+                task_conf['previous_task_id'],
+                target_hierarchy_id,
+                user_id,
+                task_conf.get('sort', 'ASC')
+            ]
+        )
+    elif task_type == "Router":
+        task = PythonOperator(
+            task_id=task_id,
+            python_callable=_make_callable_args('FlowBoard.utils', 'Router'),
+            op_args=[
+                task_conf.get('conditions', []),
+                dag_id,
+                task_id,
+                task_conf['previous_task_id'],
+                target_hierarchy_id,
+                user_id
+            ]
+        )
+    
     task_map[task_id] = task
     return task_map
 
 
 
 def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
-    # Ensure the DAG ID matches the FlowBoard ID
-    actual_dag_id = str(dag_id)
-    print(f"[INFO] Creating DAG with ID: {actual_dag_id}")
-
-    # --- timezone & start_date (must be static and in the past) ---
-    tz = pendulum.timezone(config.get('timezone', 'Asia/Kolkata'))
-    raw_start = config.get('start_date', '2024-01-01T00:00:00')
-    try:
-        start_dt = pendulum.parse(raw_start).replace(tzinfo=tz)
-    except Exception:
-        start_dt = pendulum.datetime(2024, 1, 1, tz=tz)
-
-    # If start_date accidentally ends up in the future, push it 1 minute into the past
-    now_tz = pendulum.now(tz)
-    if start_dt > now_tz:
-        start_dt = now_tz.subtract(minutes=1)
-
-    # --- dynamic scheduler knobs from config ---
-    schedule_value   = config.get('schedule', None)      # e.g. "0 2 * * *" | "@daily" | None
-    catchup_value    = bool(config.get('catchup', False))
-    max_active_runs  = int(config.get('max_active_runs', 1))
-
-    # Optional safety: validate/normalize cron
-    try:
-        schedule_value = _safe_schedule(schedule_value)
-    except NameError:
-        # _safe_schedule not defined if you skipped the helper—no problem
-        pass
-
-    dag = DAG(
-        actual_dag_id,
-        default_args={
-            'owner': 'airflow',
-            'start_date': start_dt,     # tz-aware (pendulum)
-            'retries': 0
-        },
-        schedule=schedule_value,        # << dynamic instead of None
-        catchup=catchup_value,          # << dynamic instead of False
-        max_active_runs=max_active_runs,
-        description=config.get('flow_name', 'No Description'),
-        is_paused_upon_creation=False,
-        tags=[str(user_name), str(config.get('flow_name', ''))],
-        on_success_callback=dag_success_callback,
-        on_failure_callback=dag_failure_callback,
-    )
+    dag = DAG(dag_id, default_args={
+        'owner': 'airflow',
+        'start_date': datetime(2024, 1, 1),
+        'retries': 0
+    }, schedule=None, catchup=False, is_paused_upon_creation=False, tags=[f"{user_name}",f"{config['dag_name']}"])
 
     task_map = {}
     with dag:
-        target_hierarchy_id = next(
-            (t["hierarchy_id"] for t in config['tasks'] if t["type"] == "target_data_object"),
-            next((t["hierarchy_id"] for t in config['tasks'] if t["type"] == "source_data_object"), None)
-        )
+        target_hierarchy_id = next((task["hierarchy_id"] for task in config['tasks'] if task["type"] == "target_data_object"),
+                                next((task["hierarchy_id"] for task in config['tasks'] if task["type"] == "source_data_object"), None))
 
         source_id = [(i['id'], i['source_table_name']) for i in config['tasks'] if i['type'] == 'source_data_object']
 
         param_list = config.get('parameters', [])
         sql_param_list = config.get('sql_parameters', [])
-
+        
         init_param_task = PythonOperator(
             task_id='__init_global_params',
             python_callable=init_global_params(param_list),
@@ -503,28 +421,49 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
 
         overall_task_list = []
         task_map = {}
+        
+        # Add system tasks to task_map
+        task_map['__init_global_params'] = init_param_task
+        task_map[GLOBAL_PARAM_HOLDER] = global_store_task
         for task_conf in config['tasks']:
-            task_conf = replace_params_in_json(task_conf, xcom_cache=None, parent_task_name=None, **kwargs)
-            parameter_task = None
-            task_map = task_creator(task_conf, actual_dag_id, user_id, target_hierarchy_id, source_id, task_map, parameter_task)
-            _tid = task_conf['id']
-            if task_conf['type'] == 'loop':
+            task_conf = replace_params_in_json(task_conf,xcom_cache=None,parent_task_name = None,**kwargs)
+            parameter_task= None
+            task_map = task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map,parameter_task)
+            task_id = task_conf['id']
+            if task_conf['type'] =='loop':
                 for t in task_conf['loop_tasks']:
-                    overall_task_list.append(t['id'])
+                    task_id = t['id']
+                    overall_task_list.append(task_id)
             else:
-                overall_task_list.append(_tid)
+                overall_task_list.append(task_id)
+            
 
         cleanup_task = PythonOperator(
             task_id='cleanup_temporary_tables',
             python_callable=cleanup_on_success,
-            op_kwargs={'tasks_list': overall_task_list, 'user_id': user_id, 'hierarchy_id': target_hierarchy_id},
-            trigger_rule=TriggerRule.ALL_DONE,
+            op_kwargs={
+                'tasks_list': overall_task_list,
+                'user_id': user_id,
+                'hierarchy_id': target_hierarchy_id
+            },
+            trigger_rule=TriggerRule.ALL_DONE,  # This ensures it runs no matter what
         )
+        
+        # Add cleanup task to task_map
+        task_map['cleanup_temporary_tables'] = cleanup_task
 
-        if config.get('flow', []):
-            for parent, child in config['flow']:
+        # Set up task dependencies
+        if config.get('flow',[]):
+            # Connect init_param_task to first task in flow
+            first_task = config.get('flow')[0][0]
+            init_param_task >> task_map[first_task]
+            
+            # Connect flow tasks
+            for parent, child in config.get('flow', []):
                 task_map[parent] >> task_map[child]
-            last_task = config['flow'][-1][-1]
+            
+            # Connect last task to cleanup
+            last_task = config.get('flow')[-1][-1]
             task_map[last_task] >> cleanup_task
         else:
             init_param_task >> cleanup_task
@@ -538,144 +477,67 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
             task_map[task_name] = sql_task
             if param['order'] == 'before':
                 sql_task >> task_map[param['dependent_task']]
-            elif param['order'] == 'after':
-                task_map[param['dependent_task']] >> sql_task
+            elif param['order'] =='after':
+                task_map[param['dependent_task']] >> sql_task  
             else:
-                pass
-
-    globals()[actual_dag_id] = dag
+                sql_task  
+    globals()[dag_id] = dag
     return dag
 
- 
-
-# Django is optional inside the Airflow container. Fallback gracefully if unavailable.
-try:
-    from django.db import connection
-    DJANGO_AVAILABLE = True
-except Exception:
-    connection = None
-    DJANGO_AVAILABLE = False
-
-def fetch_and_lock_dag_configs(limit=100):
-    # Always use Docker path since Airflow runs in Docker container
-    # Django writes to BASE_DIR/Configs/FlowBoard where BASE_DIR is mounted at /opt/airflow/project
+def get_configs():
+    """
+    Discover FlowBoard JSON configs under the mounted project path inside the Airflow container.
+    We always use /opt/airflow/project/Configs/FlowBoard and recurse into user/UUID folders.
+    """
+    import os
     CONFIG_DIR = '/opt/airflow/project/Configs/FlowBoard'
     print(f"[INFO] Looking for FlowBoard configs in: {CONFIG_DIR}")
-    # Ensure the directory exists; if not, create and return no configs to avoid Broken DAG
-    if not os.path.isdir(CONFIG_DIR):
-        try:
-            os.makedirs(CONFIG_DIR, exist_ok=True)
-            print(f"[INFO] Config directory {CONFIG_DIR} not found. Created it. No configs to parse yet.")
-        except Exception as e:
-            print(f"[WARN] Could not create {CONFIG_DIR}: {e}")
-        return []
-    # Diagnostic: list discovered JSON files (max 20)
+
+    configs = []
     try:
+        if not os.path.isdir(CONFIG_DIR):
+            try:
+                os.makedirs(CONFIG_DIR, exist_ok=True)
+                print(f"[INFO] Config directory {CONFIG_DIR} not found. Created it. No configs to parse yet.")
+            except Exception as e:
+                print(f"[WARN] Could not create {CONFIG_DIR}: {e}")
+            return configs
+
         discovered = []
         for root, dirs, files in os.walk(CONFIG_DIR):
-            for f in files:
-                if f.lower().endswith('.json'):
-                    discovered.append(os.path.join(root, f))
+            for file in files:
+                if file.lower().endswith('.json'):
+                    discovered.append(os.path.join(root, file))
+
         print(f"[INFO] FlowBoard config discovery: found {len(discovered)} json file(s) under {CONFIG_DIR}")
         for p in discovered[:20]:
             print(f"[INFO] - {p}")
         if len(discovered) > 20:
             print(f"[INFO] ... and {len(discovered)-20} more")
+
+        for path in discovered:
+            try:
+                with open(path) as f:
+                    config = json.load(f)
+                    # Ensure dag_id is set from filename if not present
+                    if 'dag_id' not in config:
+                        config['dag_id'] = os.path.splitext(os.path.basename(path))[0]
+                    configs.append(config)
+                    print(f"[INFO] Loaded config for DAG: {config.get('dag_id')}")
+            except Exception as e:
+                print(f"[ERROR] Failed to load config {path}: {e}")
     except Exception as e:
-        print(f"[WARN] Failed to enumerate configs under {CONFIG_DIR}: {e}")
-    # try:
-    #     with connection.cursor() as cursor:
-    #         cursor.execute("""
-    #             WITH to_parse AS (
-    #                 SELECT "Flow_id", "user_id"
-    #                 FROM "FlowBoard"
-    #                 WHERE "parsed" IS NULL OR "updated_at" > "parsed"
-    #                 ORDER BY "updated_at" ASC
-    #                 LIMIT %s
-    #                 FOR UPDATE SKIP LOCKED
-    #             )
-    #             UPDATE "FlowBoard"
-    #             SET "parsed" = NOW()
-    #             FROM to_parse
-    #             WHERE "FlowBoard"."Flow_id" = to_parse."Flow_id"
-    #             RETURNING "FlowBoard"."Flow_id" AS flow_id, "FlowBoard"."user_id" AS user_id;
-    #         """, [limit])
-            
-    #         rows = cursor.fetchall()
-    #         print('[DEBUG] Locked rows:', rows)
+        print(f"[ERROR] Unexpected error during config discovery: {e}")
 
-    #         if not rows:
-    #             return
+    return configs
 
-    #         for flow_id, user_id in rows:
-    #             full_path = os.path.join(base_dir, f'{user_id}/{flow_id}.json')
-    #             try:
-    #                 with open(full_path) as f:
-    #                     config_json = json.load(f)
-    #                     yield flow_id, config_json
-    #             except Exception as e:
-    #                 print(f"[ERROR] Failed to parse {full_path}: {e}")
-
-    # except Exception as e:
-    #     print(f"[ERROR] Database error: {e}")
-    for user_id in os.listdir(CONFIG_DIR):
-        user_dir = os.path.join(CONFIG_DIR, user_id)
-        if not os.path.isdir(user_dir):
-            continue
-        for filename in os.listdir(user_dir):
-            if filename.endswith('.json'):
-                flow_id = filename[:-5]
-                filepath = os.path.join(user_dir, filename)
-                try:
-                    with open(filepath) as f:
-                        config = json.load(f)
-                        # Ensure the config has the correct FlowBoard ID
-                        config['flow_id'] = flow_id
-                        print(f"[INFO] Processing config for FlowBoard ID: {flow_id}")
-                        yield flow_id, config
-                except Exception as e:
-                    print(f"[ERROR] Failed to load {filepath}: {e}")
-
-
-
-# def get_configs():
-#     # CONFIG_DIR = '/var/www/configs' if settings.DATABASES['default']['NAME'] == 'analytify_qa' else 'configs'
-#     configs = []
-
-#     for file in os.listdir(CONFIG_DIR):
-#         if file.endswith(".json"):
-#             with open(os.path.join(CONFIG_DIR, file)) as f:
-#                 configs.append(json.load(f))
-#     return configs
-dag_configs = list(fetch_and_lock_dag_configs() or [])
-
-if not dag_configs:
-    print("[INFO] No new DAG configs found to parse.")
-else:
-        
-    for dag_id, config in dag_configs:
-        try:
-            # Ensure we're using the correct DAG ID
-            actual_dag_id = str(dag_id)
-            print(f"[INFO] Attempting DAG generation for {actual_dag_id}")
-            dag = generate_dynamic_dag(
-                dag_id=actual_dag_id,
-                user_id=str(config.get('user_id')),
-                user_name=config['username'],
-                config=config
-            )
-
-            if not isinstance(dag, DAG):
-                print(f"[ERROR] {actual_dag_id}: Not a DAG instance: {type(dag)}")
-                continue
-            if not dag.dag_id:
-                print(f"[ERROR] {actual_dag_id}: dag_id is None")
-                continue
-
-            # Optional debug dump
-            print(f"[INFO] Storing DAG in globals with key: {dag.dag_id}")
-            globals()[dag.dag_id] = dag
-            print(f"[INFO] Successfully created DAG with ID: {dag.dag_id}")
-        except Exception as e:
-            print(f"[EXCEPTION] DAG creation failed for {actual_dag_id}: {e}")
-            traceback.print_exc()
+for config in get_configs():
+    try:
+        dag = generate_dynamic_dag(config['dag_id'], config['user_id'], config['username'], config)
+        globals()[config['dag_id']] = dag
+        print(f"[INFO] Successfully created DAG: {config['dag_id']} with {len(dag.task_dict)} tasks")
+        print(f"[INFO] Tasks: {list(dag.task_dict.keys())}")
+    except Exception as e:
+        print(f"[ERROR] Failed to create DAG {config.get('dag_id', 'unknown')}: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")

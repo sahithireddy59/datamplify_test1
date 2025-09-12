@@ -730,6 +730,110 @@ export class FlowboardComponent {
         attributeMapper: []
       }
     }
+    else if (baseName === 'Rank') {
+      iconPath = './assets/images/etl/rank-etl.svg';
+      altText = 'Rank';
+      data.type = baseName;
+      this.nodeTypeCounts[baseName] = (this.nodeTypeCounts[baseName] || 0) + 1;
+      data.nodeData = { 
+        connection: {}, 
+        dataObject: {}, 
+        general: { name: `rank_${this.nodeTypeCounts[baseName]}` }, 
+        properties: { 
+          truncate: false, create: false, havingClause: '', filterCondition: '', whereClause: '', 
+          nodeNamesDropdown: [], primaryObject: null, joinList: [],
+          rankType: '', orderByCols: [], partitionByCols: [], rankColName: '', 
+          records: null, sort: ''
+        } as any, 
+        attributes:[], 
+        groupAttributes:[],
+        sourceAttributes: [],
+        attributeMapper: []
+      }
+    }
+    else if (baseName === 'Router') {
+      iconPath = './assets/images/etl/router-etl.svg';
+      altText = 'Router';
+      data.type = baseName;
+      this.nodeTypeCounts[baseName] = (this.nodeTypeCounts[baseName] || 0) + 1;
+      data.nodeData = { 
+        connection: {}, 
+        dataObject: {}, 
+        general: { name: `router_${this.nodeTypeCounts[baseName]}` }, 
+        properties: { 
+          truncate: false, create: false, havingClause: '', filterCondition: '', whereClause: '', 
+          nodeNamesDropdown: [], primaryObject: null, joinList: [],
+          conditions: [],
+          hasDefault: false
+        } as any, 
+        attributes:[], 
+        groupAttributes:[],
+        sourceAttributes: [],
+        attributeMapper: []
+      }
+      outputNodeCount = 0; // Router starts with no output ports - they appear dynamically
+    }
+    else if (baseName === 'Union') {
+      iconPath = './assets/images/etl/union-etl.svg';
+      altText = 'Union';
+      data.type = baseName;
+      this.nodeTypeCounts[baseName] = (this.nodeTypeCounts[baseName] || 0) + 1;
+      data.nodeData = { 
+        connection: {}, 
+        dataObject: {}, 
+        general: { name: `union_${this.nodeTypeCounts[baseName]}` }, 
+        properties: { 
+          truncate: false, create: false, havingClause: '', filterCondition: '', whereClause: '', 
+          nodeNamesDropdown: [], primaryObject: null, joinList: [],
+          columnMappings: [], unionType: 'UNION ALL'
+        } as any, 
+        attributes:[], 
+        groupAttributes:[],
+        sourceAttributes: [],
+        attributeMapper: []
+      }
+      inputNodeCount = 2;
+    }
+    else if (baseName === 'Normalizer') {
+      iconPath = './assets/images/etl/normalizer-etl.svg';
+      altText = 'Normalizer';
+      data.type = baseName;
+      this.nodeTypeCounts[baseName] = (this.nodeTypeCounts[baseName] || 0) + 1;
+      data.nodeData = { 
+        connection: {}, 
+        dataObject: {}, 
+        general: { name: `normalizer_${this.nodeTypeCounts[baseName]}` }, 
+        properties: { 
+          truncate: false, create: false, havingClause: '', filterCondition: '', whereClause: '', 
+          nodeNamesDropdown: [], primaryObject: null, joinList: [],
+          groupByCols: [], pivotCol: '', valueCols: [], outputCols: []
+        } as any, 
+        attributes:[], 
+        groupAttributes:[],
+        sourceAttributes: [],
+        attributeMapper: []
+      }
+    }
+    else if (baseName === 'UpdateStrategy') {
+      iconPath = './assets/images/etl/update-strategy-etl.svg';
+      altText = 'UpdateStrategy';
+      data.type = baseName;
+      this.nodeTypeCounts[baseName] = (this.nodeTypeCounts[baseName] || 0) + 1;
+      data.nodeData = { 
+        connection: {}, 
+        dataObject: {}, 
+        general: { name: `update_strategy_${this.nodeTypeCounts[baseName]}` }, 
+        properties: { 
+          truncate: false, create: false, havingClause: '', filterCondition: '', whereClause: '', 
+          nodeNamesDropdown: [], primaryObject: null, joinList: [],
+          targetTable: '', joinKey: [], updateMappings: [], strategy: 'UPDATE'
+        } as any, 
+        attributes:[], 
+        groupAttributes:[],
+        sourceAttributes: [],
+        attributeMapper: []
+      }
+    }
     data.nodeData.general.name = data.nodeData.general.name.replace(/ /g, '_');
     let displayName = data.nodeData.general.name;
     if (displayName.length > 8) {
@@ -1313,6 +1417,60 @@ export class FlowboardComponent {
           exps.push(array);
         });
         task.expressions_list = exps;
+      } else if(nodes[nodeId].data.type === 'Rank'){
+        // Add Rank transformation properties - fully dynamic from UI
+        const props = nodes[nodeId].data.nodeData.properties;
+        task.source_attributes = [];
+        
+        // Only add properties if they are actually configured in the UI
+        if (props.orderByCols && props.orderByCols.length > 0) {
+          // Extract column names from UI objects
+          task.order_by_cols = props.orderByCols.map((col: any) => 
+            typeof col === 'string' ? col : col.value || col.label || col
+          );
+        }
+        if (props.partitionByCols && props.partitionByCols.length > 0) {
+          // Extract column names from UI objects
+          task.partition_by_cols = props.partitionByCols.map((col: any) => 
+            typeof col === 'string' ? col : col.value || col.label || col
+          );
+        }
+        if (props.rankColName && props.rankColName.trim() !== '') {
+          task.rank_col_name = props.rankColName;
+        }
+        if (props.records !== null && props.records !== undefined && props.records > 0) {
+          task.records = props.records;
+        }
+        if (props.rankType && props.rankType.trim() !== '') {
+          task.rank_type = props.rankType;
+        }
+        if (props.sort && props.sort.trim() !== '') {
+          // Map UI sort values to backend expected values
+          task.sort = (props.sort === 'top') ? 'DESC' : 'ASC';
+        }
+        
+        console.log('[Rank] Generated dynamic task config:', {
+          order_by_cols: task.order_by_cols,
+          partition_by_cols: task.partition_by_cols,
+          records: task.records,
+          sort: task.sort,
+          rank_type: task.rank_type,
+          rank_col_name: task.rank_col_name
+        });
+      } else if(nodes[nodeId].data.type === 'Router'){
+        // Add Router transformation properties
+        const props = nodes[nodeId].data.nodeData.properties;
+        
+        // Convert UI conditions format to backend format
+        if (props.conditions && props.conditions.length > 0) {
+          task.conditions = props.conditions
+            .filter((cond: any) => cond.condition && cond.outputName) // Only include valid conditions
+            .map((cond: any) => [cond.condition, cond.outputName]);
+        }
+        
+        console.log('[Router] Generated task config:', {
+          conditions: task.conditions
+        });
       }
 
       const inputConnections = nodes[nodeId].inputs?.input_1?.connections || [];
@@ -1344,6 +1502,184 @@ export class FlowboardComponent {
   deleteGroupAttribute(index:number){
     this.selectedNode.data.nodeData.groupAttributes.splice(index, 1);
     this.updateNode('groupattribute');
+  }
+
+  // Helper methods for Router transformation
+  addCondition() {
+    if (!this.selectedNode.data.nodeData.properties.conditions) {
+      this.selectedNode.data.nodeData.properties.conditions = [];
+    }
+    this.selectedNode.data.nodeData.properties.conditions.push({
+      condition: '',
+      outputName: '',
+      outputTable: '',
+      isDefault: false
+    });
+    this.updateNode('properties');
+    this.updateRouterOutputs();
+  }
+
+  removeCondition(index: number) {
+    const confirmed = confirm('Delete this condition? This will remove its output port and any existing connections from that port.');
+    if (!confirmed) {
+      return;
+    }
+    this.selectedNode.data.nodeData.properties.conditions.splice(index, 1);
+    this.updateNode('properties');
+    this.updateRouterOutputs();
+  }
+
+  onDefaultChange(index: number) {
+    // Ensure only one condition can be marked as default
+    this.selectedNode.data.nodeData.properties.conditions.forEach((condition: any, i: number) => {
+      if (i !== index) {
+        condition.isDefault = false;
+      }
+    });
+    this.updateNode('properties');
+  }
+
+  updateRouterOutputs() {
+    if (this.selectedNode && this.selectedNode.data.type === 'Router') {
+      const conditions = this.selectedNode.data.nodeData.properties.conditions || [];
+      const hasDefaultEnabled = this.selectedNode.data.nodeData.properties.hasDefault;
+      
+      // Build desired ports with tooltips
+      const desiredPorts: { title: string; tooltip: string }[] = [];
+      conditions.forEach((condition: any) => {
+        const hasCond = condition.condition && condition.condition.trim() !== '';
+        const hasName = condition.outputName && condition.outputName.trim() !== '';
+        if (hasCond && hasName) {
+          const tooltipText = `Condition: ${condition.condition}, Output Name: ${condition.outputName}`;
+          desiredPorts.push({ title: tooltipText, tooltip: tooltipText });
+        }
+      });
+      if (hasDefaultEnabled) {
+        desiredPorts.push({ title: 'Default', tooltip: 'Default route for records not matching any condition' });
+      }
+
+      // Ensure Drawflow has exactly desiredPorts.length outputs by adding/removing sockets
+      const module = this.drawflow.module || 'Home';
+      const nodeData = this.drawflow.drawflow.drawflow[module].data[this.selectedNode.id];
+      const currentOutputCount = Object.keys(nodeData.outputs || {}).length;
+      const targetCount = desiredPorts.length;
+
+      const hasAdd = typeof this.drawflow.addNodeOutput === 'function';
+      const hasRemove = typeof this.drawflow.removeNodeOutput === 'function';
+
+      if (hasAdd && hasRemove) {
+        // Add outputs
+        for (let i = currentOutputCount; i < targetCount; i++) {
+          this.drawflow.addNodeOutput(this.selectedNode.id);
+        }
+        // Remove extra outputs (from the end)
+        for (let i = currentOutputCount; i > targetCount; i--) {
+          this.drawflow.removeNodeOutput(this.selectedNode.id, `output_${i}`);
+        }
+      } else {
+        // Fallback: export, mutate, and re-import to rebuild sockets
+        const exported = this.drawflow.export();
+        const mod = this.drawflow.module || 'Home';
+        const dataMap = exported.drawflow[mod].data;
+        const nodeJson = dataMap[this.selectedNode.id];
+        if (nodeJson) {
+          // Reset outputs object to desired count
+          nodeJson.outputs = {} as any;
+          for (let i = 1; i <= targetCount; i++) {
+            (nodeJson.outputs as any)[`output_${i}`] = { connections: [] };
+          }
+          // Re-import canvas (this will recreate sockets based on outputs)
+          this.drawflow.import(exported);
+        }
+      }
+
+      // Update internal outputs metadata and apply titles/tooltips to sockets
+      // Re-fetch node after structural changes
+      const nodeRef = this.drawflow.getNodeFromId(this.selectedNode.id);
+      nodeRef.outputs = nodeRef.outputs || {};
+      // Assign titles/tooltips sequentially
+      desiredPorts.forEach((p, idx) => {
+        const key = `output_${idx + 1}`;
+        nodeRef.outputs[key] = nodeRef.outputs[key] || { connections: [] };
+        (nodeRef.outputs as any)[key].title = p.title;
+        (nodeRef.outputs as any)[key].tooltip = p.tooltip;
+      });
+      this.drawflow.updateNodeDataFromId(nodeRef.id, nodeRef.data);
+
+      // Set DOM title attributes for hover on sockets (robust selectors across themes)
+      setTimeout(() => {
+        const nodeEl = document.querySelector(`#node-${nodeRef.id}`);
+        if (!nodeEl) return;
+
+        // Try two strategies: explicit output_{n} selectors and positional children
+        const outputsContainer = nodeEl.querySelector('.outputs');
+        desiredPorts.forEach((p, idx) => {
+          const outIdx = idx + 1;
+
+          // Strategy A: by class output_{n}
+          let container: HTMLElement | null = nodeEl.querySelector(`.outputs .output_${outIdx}`) as HTMLElement;
+          // Strategy B: by nth-child in outputs wrapper
+          if (!container && outputsContainer) {
+            const child = (outputsContainer.children.item(idx) as HTMLElement) || null;
+            if (child) container = child;
+          }
+
+          if (container) {
+            container.setAttribute('title', p.tooltip);
+            // Apply title to any socket element inside
+            const candidates = container.querySelectorAll('.port, .drawflow-port, .output, .socket, *');
+            candidates.forEach((el: Element) => {
+              if (el instanceof HTMLElement) {
+                el.setAttribute('title', p.tooltip);
+              }
+            });
+          }
+        });
+      }, 0);
+    }
+  }
+
+  // Helper methods for Union transformation
+  addColumnMapping() {
+    if (!this.selectedNode.data.nodeData.properties.columnMappings) {
+      this.selectedNode.data.nodeData.properties.columnMappings = [];
+    }
+    this.selectedNode.data.nodeData.properties.columnMappings.push({
+      outputColumn: '',
+      sourceColumn: ''
+    });
+    this.updateNode('properties');
+  }
+
+  removeColumnMapping(index: number) {
+    this.selectedNode.data.nodeData.properties.columnMappings.splice(index, 1);
+    this.updateNode('properties');
+  }
+
+  // Helper methods for UpdateStrategy transformation
+  addUpdateMapping() {
+    if (!this.selectedNode.data.nodeData.properties.updateMappings) {
+      this.selectedNode.data.nodeData.properties.updateMappings = [];
+    }
+    this.selectedNode.data.nodeData.properties.updateMappings.push({
+      targetColumn: '',
+      sourceColumn: '',
+      updateType: 'overwrite'
+    });
+    this.updateNode('properties');
+  }
+
+  removeUpdateMapping(index: number) {
+    this.selectedNode.data.nodeData.properties.updateMappings.splice(index, 1);
+    this.updateNode('properties');
+  }
+
+  // Helper method to get available columns for dropdowns
+  getAvailableColumns() {
+    if (this.selectedNode?.data?.nodeData?.dataObject) {
+      return this.selectedNode.data.nodeData.dataObject.map((attr: any) => attr.label || attr.attributeName);
+    }
+    return [];
   }
   deleteSourceAttribute(index:number){
     this.selectedNode.data.nodeData.sourceAttributes.splice(index, 1);
