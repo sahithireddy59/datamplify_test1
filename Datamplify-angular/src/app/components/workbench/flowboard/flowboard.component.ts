@@ -1467,9 +1467,12 @@ export class FlowboardComponent {
             .filter((cond: any) => cond.condition && cond.outputName) // Only include valid conditions
             .map((cond: any) => [cond.condition, cond.outputName]);
         }
+        // Persist default toggle to backend
+        task.has_default = !!props.hasDefault;
         
         console.log('[Router] Generated task config:', {
-          conditions: task.conditions
+          conditions: task.conditions,
+          has_default: task.has_default
         });
       }
 

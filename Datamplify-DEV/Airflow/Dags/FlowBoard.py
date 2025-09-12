@@ -383,7 +383,8 @@ def task_creator(task_conf,dag_id,user_id,target_hierarchy_id,source_id,task_map
                 task_id,
                 task_conf['previous_task_id'],
                 target_hierarchy_id,
-                user_id
+                user_id,
+                task_conf.get('has_default', True)
             ]
         )
     

@@ -344,10 +344,50 @@ def Loading(hierarchy_id,user_id,dag_id,truncate,create,format,previous_id,targe
         elif format.lower() == 'database':
             previous_query = ti.xcom_pull(task_ids=previous_id, key=previous_id)
             table_name = ti.xcom_pull(task_ids=previous_id, key=previous_id)
-            # Fallback: if coming from a Router, the XCom key is the Router output name.
-            # Use target_table_name as the output name to pull its produced temp table.
+
+            # Robust Router resolution if table_name is missing
             if not table_name:
-                table_name = ti.xcom_pull(task_ids=previous_id, key=target_table_name)
+                logger.info(f"[Loading] Resolving upstream table for target '{target_table_name}' from Router '{previous_id}'")
+                # 1) Try direct by target_table_name (when target name equals Router output name)
+                cand = ti.xcom_pull(task_ids=previous_id, key=target_table_name)
+                if cand:
+                    logger.info(f"[Loading] Resolved via direct key '{target_table_name}': {cand}")
+                    table_name = cand
+                else:
+                    # 2) Try prefixed variants used by Router pushes
+                    variants = [
+                        f"router_{target_table_name}",
+                        f"router_{str(target_table_name).lower()}",
+                        f"router_{str(target_table_name).upper()}"
+                    ]
+                    for k in variants:
+                        cand = ti.xcom_pull(task_ids=previous_id, key=k)
+                        if cand:
+                            logger.info(f"[Loading] Resolved via variant key '{k}': {cand}")
+                            table_name = cand
+                            break
+
+                # 3) If target_table_name starts with router_, derive output name and look up in outputs map
+                if not table_name and str(target_table_name).lower().startswith('router_'):
+                    output_name = str(target_table_name)[7:]
+                    outputs_map = ti.xcom_pull(task_ids=previous_id, key='__router_outputs__') or {}
+                    logger.info(f"[Loading] outputs_map keys: {list(outputs_map.keys())}")
+                    # Try exact, lower, upper
+                    table_name = outputs_map.get(output_name) or outputs_map.get(output_name.lower()) or outputs_map.get(output_name.upper())
+                    if table_name:
+                        logger.info(f"[Loading] Resolved via outputs_map for output '{output_name}': {table_name}")
+
+                # 4) As a final attempt, fetch outputs_map and scan for a key that matches end of target name
+                if not table_name:
+                    outputs_map = ti.xcom_pull(task_ids=previous_id, key='__router_outputs__') or {}
+                    for k, v in outputs_map.items():
+                        if str(target_table_name).lower().endswith(str(k).lower()):
+                            logger.info(f"[Loading] Resolved via fuzzy match outputs_map key '{k}': {v}")
+                            table_name = v
+                            break
+
+            if not table_name:
+                raise ValueError(f"Upstream table for target '{target_table_name}' could not be resolved from Router task '{previous_id}'.")
             db_load = Load_into_database(hierarchy_id,user_id, truncate,create, target_table_name,attribute_mapper,previous_id,table_name)
             if db_load['status'] ==200:
                 logger.info(' Data Dumped into Target Database')
@@ -412,7 +452,7 @@ def _quote_bare_words_in_condition(condition: str) -> str:
         return condition
 
 
-def Router(conditions, dag_id, task_id, previous_id, target_hierarchy_id, user_id, **kwargs):
+def Router(conditions, dag_id, task_id, previous_id, target_hierarchy_id, user_id, has_default=False, **kwargs):
     """
     Route data based on conditions to different output paths.
 
@@ -447,14 +487,15 @@ def Router(conditions, dag_id, task_id, previous_id, target_hierarchy_id, user_i
     result_tables = {}
 
     # Process each condition and create corresponding output tables
+    sanitized_conditions = []
     for condition, output_name in conditions:
-        # Sanitize condition: auto-quote bare words for string comparisons (dept=IT -> dept = 'IT')
-        condition = _quote_bare_words_in_condition(condition)
+        sc = _quote_bare_words_in_condition(condition)
+        sanitized_conditions.append(sc)
         output_table_name = f"extracted_{task_id}_{output_name}_{unix_suffix}"
 
         # Generate query with the specific condition
         from_clause = (table_name, previous_id)
-        generated_query = Query_generator(from_clause=from_clause, where_clause=condition, schema=schema)
+        generated_query = Query_generator(from_clause=from_clause, where_clause=sc, schema=schema)
 
         cte = f""" "{task_id}_{output_name}" AS (\n{generated_query}\n) """
 
@@ -474,8 +515,43 @@ def Router(conditions, dag_id, task_id, previous_id, target_hierarchy_id, user_i
         result_tables[output_name] = output_table_name
         # Push to XCom for each output path using the output name as key
         ti.xcom_push(key=f"{output_name}", value=output_table_name)
+        # Also push common variants to help downstream resolution (e.g., router_<name>)
+        ti.xcom_push(key=f"router_{output_name}", value=output_table_name)
+        ti.xcom_push(key=f"router_{str(output_name).lower()}", value=output_table_name)
+        ti.xcom_push(key=f"router_{str(output_name).upper()}", value=output_table_name)
         # Optionally also push the generated CTE under a separate key for debugging/inspection
         ti.xcom_push(key=f"{output_name}__cte", value=cte)
+
+    # Default branch: records not matching any condition
+    if has_default:
+        if sanitized_conditions:
+            combined = ' OR '.join([f"({c})" for c in sanitized_conditions])
+            default_where = f"NOT ({combined})"
+        else:
+            # No conditions provided; default = all records
+            default_where = 'TRUE'
+
+        default_output_name = 'default'
+        default_table_name = f"extracted_{task_id}_{default_output_name}_{unix_suffix}"
+        from_clause = (table_name, previous_id)
+        generated_query = Query_generator(from_clause=from_clause, where_clause=default_where, schema=schema)
+        cte = f""" "{task_id}_{default_output_name}" AS (\n{generated_query}\n) """
+        result = conn.sql(f"""SELECT * FROM postgres_query('pg_db', $$WITH {cte} SELECT count(*) FROM "{task_id}_{default_output_name}" $$);""")
+        logger.info(f""" [Router Default Query]\n WITH {cte} SELECT * FROM "{task_id}_{default_output_name}" """)
+        logger.info(f"Total Records for default: {result.fetchone()[0]}")
+        with engine.begin() as conn1:
+            conn1.execute(text(f"""
+                CREATE TABLE "{schema}"."{default_table_name}" AS
+                WITH {cte} SELECT * FROM "{task_id}_{default_output_name}";
+            """))
+        result_tables[default_output_name] = default_table_name
+        ti.xcom_push(key=default_output_name, value=default_table_name)
+        ti.xcom_push(key=f"router_{default_output_name}", value=default_table_name)
+        ti.xcom_push(key=f"router_{default_output_name.lower()}", value=default_table_name)
+        ti.xcom_push(key=f"router_{default_output_name.upper()}", value=default_table_name)
+        ti.xcom_push(key=f"{default_output_name}__cte", value=cte)
+    # Push an overall outputs map for robust downstream lookup
+    ti.xcom_push(key='__router_outputs__', value=result_tables)
     conn.sql("DETACH pg_db")
 
     return result_tables
