@@ -27,7 +27,7 @@
                         <button class="btn btn-primary border me-2 search-icon-border-radius" type="button" (click)="page = 1; getFlowboardList()"
                             id="button-addon2"><i class="fe fe-search "></i></button>
 
-                        <button class="btn btn-primary new-sheet-btn-radius me-2" (click)="goToFlowboard()">
+                        <button class="btn btn-primary new-sheet-btn-radius me-2" (click)="openNewFlowboardModal(newFlowboardModal)">
                             <i class="fe fe-plus me-1"></i>New FlowBoard
                         </button>
                     </div>
@@ -165,3 +165,56 @@
         </div>
     </div>
 </div>
+
+<!-- New FlowBoard Modal -->
+<ng-template #newFlowboardModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title">Create New FlowBoard</h4>
+        <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click')"></button>
+    </div>
+    <div class="modal-body">
+        <form>
+            <div class="mb-3">
+                <label for="flowboardName" class="form-label">FlowBoard Name *</label>
+                <input type="text" class="form-control" id="flowboardName" [(ngModel)]="newFlowboard.name" name="flowboardName" placeholder="Enter FlowBoard name" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="flowboardDescription" class="form-label">Description (Optional)</label>
+                <textarea class="form-control" id="flowboardDescription" rows="2" [(ngModel)]="newFlowboard.description" name="flowboardDescription" placeholder="Brief description of this FlowBoard"></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="sourceTableName" class="form-label">Source Table Name (Optional)</label>
+                <input type="text" class="form-control" id="sourceTableName" [(ngModel)]="newFlowboard.sourceTable" name="sourceTableName" placeholder="e.g., customers, orders, products">
+                <small class="text-muted">The source table name for AI to analyze and create mappings.</small>
+            </div>
+            
+            <div class="mb-3">
+                <label for="targetTableName" class="form-label">Target Table Name (Optional)</label>
+                <input type="text" class="form-control" id="targetTableName" [(ngModel)]="newFlowboard.targetTable" name="targetTableName" placeholder="e.g., dim_customers, fact_orders">
+                <small class="text-muted">The target table name for AI to map to. AI will automatically create intelligent mappings.</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">AI Provider</label>
+                <select class="form-select" [(ngModel)]="newFlowboard.aiProvider" name="aiProvider">
+                    <option value="heuristic">Heuristic (No AI)</option>
+                    <option value="google">Google AI</option>
+                    <option value="ollama">Local AI (Ollama)</option>
+                    <option value="perplexity">Perplexity AI</option>
+                </select>
+                <small class="text-muted">Select which AI provider to use for automatic mapping generation.</small>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="modal.dismiss('cancel')">Cancel</button>
+        <button type="button" class="btn btn-success me-2" 
+                [disabled]="!newFlowboard.sourceTable || !newFlowboard.targetTable || newFlowboard.aiProvider === 'heuristic'" 
+                (click)="generateMappingDirectly(modal)">
+            <i class="fa fa-magic me-1"></i> Generate Mapping with AI
+        </button>
+        <button type="button" class="btn btn-primary" [disabled]="!newFlowboard.name" (click)="createFlowboard(modal)">Create FlowBoard</button>
+    </div>
+</ng-template>

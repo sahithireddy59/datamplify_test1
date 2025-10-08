@@ -1,0 +1,231 @@
+{
+    "dag_name": "test_ai",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_bacteria_table_genus",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "bacteria_table_genus",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "id",
+                    "integer",
+                    "id",
+                    "integer"
+                ],
+                [
+                    "taxon_id",
+                    "integer",
+                    "taxon_id",
+                    "integer"
+                ],
+                [
+                    "pet_genus_level_information",
+                    "text",
+                    "pet_genus_level_information",
+                    "text"
+                ],
+                [
+                    "avg",
+                    "numeric",
+                    "avg",
+                    "numeric"
+                ],
+                [
+                    "reference_range",
+                    "text",
+                    "reference_range",
+                    "text"
+                ],
+                [
+                    "taxon_type",
+                    "USER-DEFINED",
+                    "taxon_type",
+                    "USER-DEFINED"
+                ],
+                [
+                    "colour_code",
+                    "character varying",
+                    "colour_code",
+                    "character varying"
+                ],
+                [
+                    "description",
+                    "text",
+                    "description",
+                    "text"
+                ],
+                [
+                    "category",
+                    "character varying",
+                    "category",
+                    "character varying"
+                ],
+                [
+                    "order_of_execution",
+                    "integer",
+                    "order_of_execution",
+                    "integer"
+                ],
+                [
+                    "company_id",
+                    "integer",
+                    "company_id",
+                    "integer"
+                ],
+                [
+                    "user_account_type",
+                    "USER-DEFINED",
+                    "user_account_type",
+                    "USER-DEFINED"
+                ],
+                [
+                    "is_active",
+                    "boolean",
+                    "is_active",
+                    "boolean"
+                ],
+                [
+                    "flag",
+                    "character varying",
+                    "flag",
+                    "character varying"
+                ],
+                [
+                    "scenario_no",
+                    "character varying",
+                    "scenario_no",
+                    "character varying"
+                ],
+                [
+                    "category_label",
+                    "character varying",
+                    "category_label",
+                    "character varying"
+                ],
+                [
+                    "low_2pnt5pct",
+                    "numeric",
+                    "low_2pnt5pct",
+                    "numeric"
+                ],
+                [
+                    "low_10pct",
+                    "numeric",
+                    "low_10pct",
+                    "numeric"
+                ],
+                [
+                    "high_90pct",
+                    "numeric",
+                    "high_90pct",
+                    "numeric"
+                ],
+                [
+                    "high_97pnt5pct",
+                    "numeric",
+                    "high_97pnt5pct",
+                    "numeric"
+                ],
+                [
+                    "f0to2pnt5",
+                    "character varying",
+                    "f0to2pnt5",
+                    "character varying"
+                ],
+                [
+                    "f2pnt5to10",
+                    "character varying",
+                    "f2pnt5to10",
+                    "character varying"
+                ],
+                [
+                    "f10to90",
+                    "character varying",
+                    "f10to90",
+                    "character varying"
+                ],
+                [
+                    "f90to97pnt5",
+                    "character varying",
+                    "f90to97pnt5",
+                    "character varying"
+                ],
+                [
+                    "f97pnt5up",
+                    "character varying",
+                    "f97pnt5up",
+                    "character varying"
+                ],
+                [
+                    "low",
+                    "numeric",
+                    "low",
+                    "numeric"
+                ],
+                [
+                    "high",
+                    "numeric",
+                    "high",
+                    "numeric"
+                ],
+                [
+                    "high_end",
+                    "numeric",
+                    "high_end",
+                    "numeric"
+                ],
+                [
+                    "sample_type_id",
+                    "integer",
+                    "sample_type_id",
+                    "integer"
+                ],
+                [
+                    "host_species_id",
+                    "integer",
+                    "host_species_id",
+                    "integer"
+                ],
+                [
+                    "created_at",
+                    "timestamp with time zone",
+                    "created_at",
+                    "timestamp with time zone"
+                ],
+                [
+                    "updated_at",
+                    "timestamp with time zone",
+                    "updated_at",
+                    "timestamp with time zone"
+                ]
+            ]
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_src_bcteria",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "src_bcteria",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "SRC_bacteria_table_genus"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_bacteria_table_genus",
+            "TGT_src_bcteria"
+        ]
+    ],
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d",
+    "username": "sahithi12",
+    "dag_id": "127001-20251007064315-11",
+    "flow_name": "test_ai"
+}

@@ -1,0 +1,68 @@
+<!-- Admin Portal Layout -->
+<div class="admin-container">
+  <!-- Top Navigation Bar -->
+  <nav class="admin-navbar">
+    <div class="navbar-left">
+      <button class="sidebar-toggle" (click)="toggleSidebar()">
+        <i class="fa fa-bars"></i>
+      </button>
+      <h4 class="admin-title">
+        <i class="fa fa-shield-alt me-2"></i>
+        Admin Portal
+      </h4>
+    </div>
+    
+    <div class="navbar-right">
+      <button class="btn btn-sm btn-outline-light me-3" (click)="navigateToWorkbench()">
+        <i class="fa fa-arrow-left me-1"></i> Back to Workbench
+      </button>
+      
+      <div class="user-profile" ngbDropdown>
+        <button class="user-profile-btn" ngbDropdownToggle>
+          <i class="fa fa-user-circle me-2"></i>
+          <span>{{ currentUser?.username || 'Admin' }}</span>
+        </button>
+        <div ngbDropdownMenu class="dropdown-menu-end">
+          <button ngbDropdownItem>
+            <i class="fa fa-user me-2"></i> Profile
+          </button>
+          <button ngbDropdownItem>
+            <i class="fa fa-cog me-2"></i> Settings
+          </button>
+          <div class="dropdown-divider"></div>
+          <button ngbDropdownItem (click)="logout()">
+            <i class="fa fa-sign-out-alt me-2"></i> Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <div class="admin-main">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar" [class.collapsed]="isSidebarCollapsed">
+      <div class="sidebar-content">
+        <ul class="sidebar-menu">
+          <li *ngFor="let item of adminMenuItems" 
+              class="menu-item"
+              [class.active]="isActiveRoute(item.route)"
+              [routerLink]="item.route">
+            <div class="menu-item-content">
+              <i [class]="item.icon + ' menu-icon'"></i>
+              <div class="menu-text" *ngIf="!isSidebarCollapsed">
+                <span class="menu-title">{{ item.title }}</span>
+                <small class="menu-description">{{ item.description }}</small>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="admin-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

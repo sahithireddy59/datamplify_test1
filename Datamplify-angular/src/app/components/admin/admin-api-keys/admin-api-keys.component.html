@@ -1,0 +1,87 @@
+<div class="admin-api-keys">
+  <div class="keys-header">
+    <div>
+      <h2 class="page-title">API Keys Management</h2>
+      <p class="page-subtitle">Manage API keys for external services</p>
+    </div>
+    <button class="btn btn-primary" (click)="openAddKeyModal(addKeyModal)">
+      <i class="fa fa-plus me-2"></i> Add API Key
+    </button>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6" *ngFor="let key of apiKeys">
+      <div class="api-key-card">
+        <div class="key-header">
+          <div class="key-provider">
+            <i class="fa" [ngClass]="getProviderIcon(key.provider)"></i>
+            <span>{{ getProviderLabel(key.provider) }}</span>
+          </div>
+          <span class="badge" [class.badge-success]="key.status === 'active'" [class.badge-secondary]="key.status !== 'active'">
+            {{ key.status }}
+          </span>
+        </div>
+        
+        <h5 class="key-name">{{ key.name }}</h5>
+        
+        <div class="key-value">
+          <code>{{ key.maskedKey }}</code>
+          <button class="btn btn-sm btn-outline-secondary" (click)="copyToClipboard(key.key)">
+            <i class="fa fa-copy"></i>
+          </button>
+        </div>
+
+        <div class="key-meta">
+          <div class="meta-item">
+            <i class="fa fa-calendar me-1"></i>
+            <small>Created: {{ key.createdAt | date:'short' }}</small>
+          </div>
+          <div class="meta-item" *ngIf="key.lastUsed">
+            <i class="fa fa-clock me-1"></i>
+            <small>Last used: {{ key.lastUsed | date:'short' }}</small>
+          </div>
+        </div>
+
+        <div class="key-actions">
+          <button class="btn btn-sm btn-outline-danger" (click)="deleteKey(key.id)">
+            <i class="fa fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add API Key Modal -->
+<ng-template #addKeyModal let-modal>
+  <div class="modal-header">
+    <h5 class="modal-title">Add New API Key</h5>
+    <button type="button" class="btn-close" (click)="modal.dismiss()"></button>
+  </div>
+  <div class="modal-body">
+    <form>
+      <div class="mb-3">
+        <label class="form-label">Key Name *</label>
+        <input type="text" class="form-control" [(ngModel)]="newKey.name" name="keyName" placeholder="e.g., Production Google AI Key">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Provider *</label>
+        <select class="form-select" [(ngModel)]="newKey.provider" name="provider">
+          <option value="">Select Provider</option>
+          <option *ngFor="let provider of providers" [value]="provider.value">
+            {{ provider.label }}
+          </option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">API Key *</label>
+        <input type="password" class="form-control" [(ngModel)]="newKey.key" name="apiKey" placeholder="Enter API key">
+        <small class="text-muted">The key will be encrypted and stored securely</small>
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="addApiKey(modal)">Add Key</button>
+  </div>
+</ng-template>

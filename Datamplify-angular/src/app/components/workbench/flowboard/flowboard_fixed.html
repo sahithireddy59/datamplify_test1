@@ -1,0 +1,189 @@
+<!-- Fixed section from line ~940 onwards -->
+                                                                    </li>
+                                                                    <!-- <li [ngbNavItem]="9" className="nav-link text-start" id="load-order-tab"><a
+                                                                            ngbNavLink>Load Order</a>
+                                                                        <ng-template ngbNavContent>
+                                                                        </ng-template>
+                                                                    </li> -->
+                                                                    }
+                                                                </ul>
+                                                            </div>
+                                                        
+                                                            <div class="p-2 node-table-right">
+                                                                <div class="tab-content" id="vertical-tabContent">
+                                                                    <div [ngbNavOutlet]="tableTabs"></div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </ng-template>
+                                                </li>
+                                                <li *ngIf="isLogShow" [ngbNavItem]="2" (click)="getDataFlowLogs(selectedNode.data.nodeData.general.name)"> 
+                                                    <a ngbNavLink class="p-3 TabShadow"> Logs </a>
+                                                    <ng-template ngbNavContent>
+                                                        <app-etl-logger-view [logs]="logs"></app-etl-logger-view>
+                                                    </ng-template>
+                                                </li>
+                                            </ul>
+                                            <div type="button" class="btn btn-primary" (click)="toggleCollapse()">
+                                                <i *ngIf="isCollapsed" class="fa fa-angle-up fs-18"></i>
+                                                <i *ngIf="!isCollapsed" class="fa fa-angle-down fs-18"></i>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex p-1">
+                                            <div class="tab-content tab-content-width" id="vertical-tabContent">
+                                                <div [ngbNavOutlet]="tableTypes"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-2 p-1 border-end mt-1" [ngStyle]="{ 'display': isOpen ? 'block' : 'none' }">
+                            <div class="card mb-0 connections-layer-h">
+                                <ul ngbNav #nav="ngbNav" [(activeId)]="active" class="nav flex-column nav-pills" id="vertical-tab"
+                                    role="tablist" aria-orientation="vertical">
+                                    <li [ngbNavItem]="1">
+                                        <div ngbAccordion [closeOthers]="true" class="accordion border-0 mb-2" id="accordionExample1">
+                                            <div ngbAccordionItem [collapsed]="false" class="accordion-item">
+                                                <h2 ngbAccordionHeader class="accordion-header" id="headingOne">
+                                                    <button ngbAccordionButton class="accordion-button py-3 px-3" type="button"
+                                                        data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true"
+                                                        aria-controls="collapseOne">
+                                                        <i class="fa fa-plug ms-2 plug-icon"></i>Sources
+                                                    </button>
+                                                </h2>
+                                                <div ngbAccordionCollapse id="collapseOne" class="accordion-collapse collapse show"
+                                                    aria-labelledby="headingOne" data-bs-parent="#accordionExample1">
+                                                    <div class="accordion-body p-0" ngbAccordionBody>
+                                                        <ng-template>
+                                                            <div class="data-cdk-tables p-0">
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'source_data_object', connectionList, 1)"
+                                                                    data-node="Source Data Object">
+                                                                    <img src="./assets/images/etl/PostgreSQL-etl.svg" alt="postgres"
+                                                                        class="drawflow-image"><span> Source Data Object</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'source_data_object', connectionList, 2)"
+                                                                    data-node="Source Data Object">
+                                                                    <img src="./assets/images/etl/File-etl.svg" alt="file"
+                                                                        class="drawflow-image"><span> File</span>
+                                                                </div>
+                                                            </div>
+                                                        </ng-template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div ngbAccordion [closeOthers]="true" class="accordion border-0 mb-2" id="accordionExample2">
+                                            <div ngbAccordionItem [collapsed]="true" class="accordion-item">
+                                                <h2 ngbAccordionHeader class="accordion-header" id="headingTwo">
+                                                    <button ngbAccordionButton class="accordion-button py-3 px-3" type="button"
+                                                        data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true"
+                                                        aria-controls="collapseTwo">
+                                                        <i class="fa fa-plug ms-2 plug-icon"></i>Targets
+                                                    </button>
+                                                </h2>
+                                                <div ngbAccordionCollapse id="collapseTwo" class="accordion-collapse collapse show"
+                                                    aria-labelledby="headingTwo" data-bs-parent="#accordionExample2">
+                                                    <div class="accordion-body p-0" ngbAccordionBody>
+                                                        <ng-template>
+                                                            <div class="data-cdk-tables p-0">
+                                                                <div class="drag-drawflow border-bottom" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'target_data_object', connectionList, 1)"
+                                                                    data-node="Target Data Object">
+                                                                    <img src="./assets/images/etl/PostgreSQL-etl.svg" alt="postgres"
+                                                                        class="drawflow-image"><span> PostgresSQL</span>
+                                                                </div>
+                                                            </div>
+                                                        </ng-template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div ngbAccordion [closeOthers]="true" class="accordion border-0" id="accordionExample3">
+                                            <div ngbAccordionItem [collapsed]="true" class="accordion-item">
+                                                <h2 ngbAccordionHeader class="accordion-header" id="headingThree">
+                                                    <button ngbAccordionButton class="accordion-button py-3 px-3" type="button"
+                                                        data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="true"
+                                                        aria-controls="collapseThree">
+                                                        <i class="fa fa-gears me-2"></i>Transformations
+                                                    </button>
+                                                </h2>
+                                                <div ngbAccordionCollapse id="collapseThree" class="accordion-collapse collapse show"
+                                                    aria-labelledby="headingThree" data-bs-parent="#accordionExample3">
+                                                    <div class="accordion-body p-0" ngbAccordionBody>
+                                                        <ng-template>
+                                                            <div class="data-cdk-tables px-3 mt-2">
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'Expression', null, '')"
+                                                                    data-node="Expression">
+                                                                    <img src="./assets/images/etl/expression-etl.svg" alt="Expression"
+                                                                        class="drawflow-image"><span> Expression</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'Joiner', null, '')" data-node="Joiner">
+                                                                    <img src="./assets/images/etl/mjoiner-etl.svg" alt="Joiner"
+                                                                        class="drawflow-image"><span> Joiner</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'Rollup', null, '')" data-node="Rollup">
+                                                                    <img src="./assets/images/etl/rollup-etl.svg" alt="Rollup"
+                                                                        class="drawflow-image"><span> Rollup</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'Filter', null, '')" data-node="Filter">
+                                                                    <img src="./assets/images/etl/filter-etl.svg" alt="Filter"
+                                                                        class="drawflow-image"><span> Filter</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'Rank', null, '')" data-node="Rank">
+                                                                    <img src="./assets/images/etl/rank-etl.svg" alt="Rank"
+                                                                        class="drawflow-image"><span> Rank</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'Router', null, '')" data-node="Router">
+                                                                    <img src="./assets/images/etl/router-etl.svg" alt="Router"
+                                                                        class="drawflow-image"><span> Router</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'Union', null, '')" data-node="Union">
+                                                                    <img src="./assets/images/etl/union-etl.svg" alt="Union"
+                                                                        class="drawflow-image"><span> Union</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'Normalizer', null, '')" data-node="Normalizer">
+                                                                    <img src="./assets/images/etl/normalizer-etl.svg" alt="Normalizer"
+                                                                        class="drawflow-image"><span> Normalizer</span>
+                                                                </div>
+                                                                <div class="drag-drawflow" draggable="true"
+                                                                    (dragstart)="onDragStart($event, 'UpdateStrategy', null, '')" data-node="UpdateStrategy">
+                                                                    <img src="./assets/images/etl/update-strategy-etl.svg" alt="UpdateStrategy"
+                                                                        class="drawflow-image"><span> Update Strategy</span>
+                                                                </div>
+                                                            </div>
+                                                        </ng-template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <ng-template ngbNavContent>
+                                            <div id="drawflow" #drawflow [ngClass]="isOpen ? 'drawflow-width-half' : 'drawflow-width-full'"
+                                                (drop)="onDrop($event)" (dragover)="onDragOver($event)">
+                                                <div class="bar-zoom">
+                                                    <i class="fas fa-search-minus" (click)="canvasZoomOut()"></i>
+                                                    <i class="fas fa-search" (click)="canvasZoomReset()"></i>
+                                                    <i class="fas fa-search-plus" (click)="canvasZoomIn()"></i>
+                                                </div>
+                                            </div>
+                                        </ng-template>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div> 
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

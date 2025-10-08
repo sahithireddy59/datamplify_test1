@@ -294,6 +294,13 @@ export class WorkbenchService {
     // return this.http.post<any>(`${environment.apiUrl}/server_files/` + this.accessToken, object);
   }
 
+  // AI mapping suggest (heuristic/LLM) for FlowBoard Load
+  aiSuggestMapping(payload: any) {
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.post<any>(`${environment.apiUrl}/flowboard/ai/mapping/suggest`, payload, { headers: this.buildHeaders(this.accessToken) });
+  }
+
   // Airflow API
   airflowToken: string | null = '';
   username: string = '';

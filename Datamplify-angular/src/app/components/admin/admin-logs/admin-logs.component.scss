@@ -1,0 +1,75 @@
+.admin-logs {
+  .logs-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+  }
+
+  .page-subtitle {
+    color: #718096;
+    margin: 0.25rem 0 0 0;
+  }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: none;
+  }
+
+  .card-header {
+    background: transparent;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 1.5rem;
+  }
+
+  .card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #2d3748;
+  }
+
+  .table {
+    th {
+      background: #f7fafc;
+      color: #4a5568;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    td {
+      vertical-align: middle;
+      color: #2d3748;
+    }
+
+    tbody tr:hover {
+      background: #f7fafc;
+    }
+  }
+
+  .badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.75rem;
+  }
+
+  .badge-info { background: #bee3f8; color: #2c5282; }
+  .badge-success { background: #c6f6d5; color: #22543d; }
+  .badge-warning { background: #feebc8; color: #7c2d12; }
+  .badge-danger { background: #fed7d7; color: #742a2a; }
+
+  .card-footer {
+    background: transparent;
+    border-top: 1px solid #e2e8f0;
+    padding: 1rem 1.5rem;
+  }
+}

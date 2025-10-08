@@ -1,0 +1,59 @@
+<div class="admin-settings">
+  <div class="settings-header">
+    <h2 class="page-title">System Settings</h2>
+    <p class="page-subtitle">Configure application settings and preferences</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="fa fa-cog me-2"></i> General Settings
+      </h5>
+    </div>
+    <div class="card-body">
+      <form>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Application Name</label>
+            <input type="text" class="form-control" [(ngModel)]="settings.appName" name="appName">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Version</label>
+            <input type="text" class="form-control" [(ngModel)]="settings.appVersion" name="appVersion" readonly>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Max Upload Size (MB)</label>
+            <input type="number" class="form-control" [(ngModel)]="settings.maxUploadSize" name="maxUploadSize">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Session Timeout (minutes)</label>
+            <input type="number" class="form-control" [(ngModel)]="settings.sessionTimeout" name="sessionTimeout">
+          </div>
+          <div class="col-md-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" [(ngModel)]="settings.enableAuditLog" name="enableAuditLog" id="auditLog">
+              <label class="form-check-label" for="auditLog">Enable Audit Logging</label>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" [(ngModel)]="settings.enableEmailNotifications" name="enableEmailNotifications" id="emailNotif">
+              <label class="form-check-label" for="emailNotif">Enable Email Notifications</label>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" [(ngModel)]="settings.maintenanceMode" name="maintenanceMode" id="maintenance">
+              <label class="form-check-label" for="maintenance">Maintenance Mode</label>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <button type="button" class="btn btn-primary" (click)="saveSettings()">
+            <i class="fa fa-save me-2"></i> Save Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

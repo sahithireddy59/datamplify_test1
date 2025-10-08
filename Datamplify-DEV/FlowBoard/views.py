@@ -21,6 +21,8 @@ import os,json,requests,uuid
 from datetime import timezone
 import time
 import logging
+from FlowBoard.ai_mapping import suggest_mappings, parse_nl_mappings
+from FlowBoard.ai_llm import is_ollama_available, suggest_mappings_llm
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +219,146 @@ class FlowBoard(APIView):
                 'success': False,
                 'message': f'Auto-trigger error: {str(e)}'
             }
+
+
+class MappingSuggest(APIView):
+    @csrf_exempt
+    def post(self, request):
+        """
+        Suggest schema mappings dynamically using free heuristics (no external AI).
+
+        Request JSON:
+        {
+          "source": [{"name": "cust_id", "type": "int", "description": ""}, ...],
+          "target": [{"name": "customer_id", "type": "integer"}, ...],
+          "max_sources_per_target": 1,
+          "to_attribute_mapper": false
+        }
+
+        Response JSON:
+        {
+          "mappings": [{"target": str, "source": str, "transform": str|null, "cast": str|null, "confidence": float, "rationale": str}],
+          "unresolved": [{"target": str, "reasons": [str]}],
+          "attribute_mapper": [[target, "", source_col, data_type]]  // when requested
+        }
+        """
+        tok1 = token_function(request)
+        if tok1.get("status") != 200:
+            return Response({'message': tok1.get('message', 'Unauthorized')}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            payload = request.data if isinstance(request.data, dict) else {}
+            source = payload.get('source') or []
+            target = payload.get('target') or []
+            max_sources_per_target = int(payload.get('max_sources_per_target', 1) or 1)
+
+            ai_provider = payload.get('ai_provider', 'heuristic')  # heuristic, ollama, perplexity
+            model = payload.get('model', None)
+            result = None
+            llm_meta = {}
+            # Optional natural language instruction like: "map cust_id to customer_id; cast amount to double as total_amount"
+            instruction = payload.get('instruction')
+            nl_result = None
+            if instruction:
+                src_names = [s.get('name') for s in (source or []) if s.get('name')]
+                tgt_names = [t.get('name') for t in (target or []) if t.get('name')]
+                nl_result = parse_nl_mappings(instruction, src_names, tgt_names)
+            
+            # Try AI providers if requested
+            if ai_provider == 'ollama' and is_ollama_available():
+                llm_result = suggest_mappings_llm(source, target, model=model or DEFAULT_MODEL)
+                llm_meta = {k: v for k, v in llm_result.items() if k not in ('mappings', 'unresolved')}
+                if llm_result.get('mappings') or llm_result.get('unresolved'):
+                    result = { 'mappings': llm_result.get('mappings', []), 'unresolved': llm_result.get('unresolved', []) }
+            elif ai_provider in ['perplexity', 'google']:
+                # Use AI (Perplexity or Google) for enhanced mapping suggestions
+                from .ai_llm import query_llm
+                import json
+                
+                # Build comprehensive prompt for AI
+                source_cols = [f"{s.get('name')} ({s.get('type', 'unknown')})" for s in source]
+                target_cols = [f"{t.get('name')} ({t.get('type', 'unknown')})" for t in target]
+                
+                prompt = f"""You are a data mapping expert. Create SQL mapping expressions for ETL data transformation.
+
+SOURCE COLUMNS: {source_cols}
+TARGET COLUMNS: {target_cols}
+INSTRUCTION: {instruction or 'Create one-to-one mapping from source to target'}
+
+Generate mappings in this EXACT JSON format (no additional text):
+{{"mappings": [{{"target": "target_column_name", "source": "source_column_name", "cast": "target_data_type"}}], "unresolved": []}}
+
+Rules:
+1. Map each target column to the best matching source column
+2. Use exact column names from the lists above
+3. For one-to-one mapping, map columns with similar names
+4. Include data type casting when needed
+5. Return valid JSON only"""
+                
+                try:
+                    # Use appropriate model based on provider
+                    default_model = "sonar" if ai_provider == "perplexity" else "gemini-2.0-flash-exp"
+                    llm_response = query_llm(prompt, ai_provider, model or default_model)
+                    logger.info(f"{ai_provider.capitalize()} AI response: {llm_response}")
+                    
+                    if llm_response:
+                        # Clean response to extract JSON
+                        response_clean = llm_response.strip()
+                        if response_clean.startswith('```json'):
+                            response_clean = response_clean[7:]
+                        if response_clean.endswith('```'):
+                            response_clean = response_clean[:-3]
+                        response_clean = response_clean.strip()
+                        
+                        parsed = json.loads(response_clean)
+                        if parsed.get('mappings'):
+                            result = parsed
+                            logger.info(f"{ai_provider.capitalize()} AI mappings generated: {len(parsed.get('mappings', []))} mappings")
+                        else:
+                            logger.warning(f"{ai_provider.capitalize()} AI response has no mappings")
+                    else:
+                        logger.warning(f"No response from {ai_provider.capitalize()} AI")
+                except json.JSONDecodeError as e:
+                    logger.error(f"{ai_provider.capitalize()} AI JSON decode error: {str(e)}, response: {llm_response}")
+                except Exception as e:
+                    logger.error(f"{ai_provider.capitalize()} AI error: {str(e)}")
+                    # Fallback to heuristic if AI fails
+
+            if result is None:
+                result = suggest_mappings(source, target, max_sources_per_target=max_sources_per_target)
+
+            # If we also have NL directives, merge them (NL wins for overlapping targets)
+            if nl_result:
+                by_target = {m.get('target'): m for m in result.get('mappings', []) if m.get('target')}
+                for m in nl_result.get('mappings', []):
+                    tgt = m.get('target')
+                    if tgt:
+                        by_target[tgt] = m
+                result['mappings'] = list(by_target.values())
+                # Combine unresolved
+                result['unresolved'] = (result.get('unresolved') or []) + (nl_result.get('unresolved') or [])
+
+            # Optionally include attribute_mapper format for Load_into_database
+            if payload.get('to_attribute_mapper'):
+                target_types = { (t.get('name') or ''): (t.get('type') or '') for t in (target or []) }
+                attribute_mapper = []
+                for m in result.get('mappings', []):
+                    tgt = m.get('target')
+                    # Use transform expression if present; otherwise use source column
+                    src_expr = m.get('transform') or m.get('source')
+                    # dtype: prefer explicit cast; fallback to target declared type; default TEXT
+                    dtype = (m.get('cast') or target_types.get(tgt) or 'TEXT')
+                    attribute_mapper.append([tgt, "", src_expr, dtype])
+                result['attribute_mapper'] = attribute_mapper
+
+            # Include meta about which engine was used
+            result['engine'] = 'llm' if use_llm and (llm_meta or is_ollama_available()) else 'heuristic'
+            if llm_meta:
+                result['llm_meta'] = llm_meta
+
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'message': f'failed to suggest mappings: {e}'}, status=status.HTTP_400_BAD_REQUEST)
 
 class FlowOperation(APIView):  
     @csrf_exempt

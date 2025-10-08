@@ -42,6 +42,8 @@ def user_info_view(request):
     })
 
 class SignUp(APIView):
+    permission_classes = []  # Allow unauthenticated access
+    authentication_classes = []  # No authentication required for signup
     serializer_class= serializers.RegisterSerializer
     @swagger_auto_schema(request_body=serializers.RegisterSerializer)
     @transaction.atomic()
@@ -80,6 +82,8 @@ class SignUp(APIView):
 
 
 class AccountActivate(APIView):
+    permission_classes = []  # Allow unauthenticated access
+    authentication_classes = []  # No authentication required for activation
     serializer_class = serializers.ActivationSerializer
     @swagger_auto_schema(request_body=serializers.ActivationSerializer)
 
@@ -118,6 +122,8 @@ class AccountActivate(APIView):
         
 
 class Login(APIView):
+    permission_classes = []  # Allow unauthenticated access
+    authentication_classes = []  # No authentication required for login
     serializer_class = serializers.LoginSerializer
     @swagger_auto_schema(request_body=serializers.LoginSerializer)
     @csrf_exempt
@@ -217,6 +223,8 @@ class Login(APIView):
 
 
 class ForgotPasswordView(APIView):
+    permission_classes = []  # Allow unauthenticated access
+    authentication_classes = []  # No authentication required for password reset
     serializer_class = serializers.ForgetPasswordSerializer
 
     def post(self, request):

@@ -1,0 +1,129 @@
+.admin-api-keys {
+  .keys-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+  }
+
+  .page-subtitle {
+    color: #718096;
+    margin: 0.25rem 0 0 0;
+  }
+
+  .api-key-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  }
+
+  .key-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .key-provider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #667eea;
+    font-weight: 600;
+
+    i {
+      font-size: 1.25rem;
+    }
+  }
+
+  .badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.75rem;
+  }
+
+  .badge-success { background: #c6f6d5; color: #22543d; }
+  .badge-secondary { background: #e2e8f0; color: #4a5568; }
+
+  .key-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 1rem;
+  }
+
+  .key-value {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f7fafc;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+
+    code {
+      flex: 1;
+      color: #2d3748;
+      font-family: 'Courier New', monospace;
+    }
+  }
+
+  .key-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    color: #718096;
+    font-size: 0.875rem;
+  }
+
+  .key-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-outline-danger {
+    color: #e53e3e;
+    border-color: #e53e3e;
+
+    &:hover {
+      background: #e53e3e;
+      color: white;
+    }
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+  }
+}

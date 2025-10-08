@@ -23,7 +23,7 @@ export interface FlowboardListResponse {
 
 @Injectable({ providedIn: 'root' })
 export class FlowboardService {
-  private base = `${environment.apiUrl}/flowboard/flow/`;
+  private base = `${environment.apiUrl}/flowboard/list/`;
 
   constructor(private http: HttpClient) {}
 

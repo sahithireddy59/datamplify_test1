@@ -265,7 +265,18 @@ def Load_into_database(hierarchy_id, user_id, truncate_table, create_table, targ
         else:
             table_params1 = ', '.join(f"{i[0]}" for i in attribute_mapper)
             table_params = f"({table_params1})"
-            trans_params = ', '.join(f""" cast("{i[2]}" as {i[3]}) as "{i[0]}" """ for i in attribute_mapper)
+            # Quote only simple identifiers on the source side; pass through expressions as-is
+            def _is_simple_identifier(s: str) -> bool:
+                try:
+                    return bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(s or "")))
+                except Exception:
+                    return False
+            def _src_sql(s: str) -> str:
+                return f'"{s}"' if _is_simple_identifier(s) else str(s)
+            trans_params = ', '.join(
+                f""" cast({_src_sql(i[2])} as {i[3]}) as "{i[0]}" """
+                for i in attribute_mapper
+            )
 
         result_count = cursor.execute(text(f"""SELECT count(*) FROM "{schema}"."{extract_table_name}";"""))
         row_count = result_count.fetchone()[0]

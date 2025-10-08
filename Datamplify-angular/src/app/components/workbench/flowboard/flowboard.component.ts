@@ -85,6 +85,10 @@ export class FlowboardComponent {
   Folders: any[] = [];
   expEditorAddType: string = 'transforms';
   flowId: string = '';
+  // AI mapping (natural language) UI state
+  aiInstruction: string = '';
+  aiProvider: string = 'heuristic';
+  generatingMapping: boolean = false;
   functionGroupType: { key: string; value: string }[] = [
     { key: 'All Functions', value: 'allFunctions' },
     { key: 'Analytical', value: 'analytical' },
@@ -391,6 +395,39 @@ export class FlowboardComponent {
 
   ngOnInit() {
     this.loaderService.hide();
+    
+    // Load FlowBoard metadata and AI table names from session storage if creating new FlowBoard
+    const storedName = sessionStorage.getItem('flowboard_name');
+    const storedSourceTable = sessionStorage.getItem('flowboard_source_table');
+    const storedTargetTable = sessionStorage.getItem('flowboard_target_table');
+    const storedAiProvider = sessionStorage.getItem('flowboard_ai_provider');
+    
+    if (storedName) {
+      // Set the FlowBoard name if provided
+      this.canvasData.name = storedName;
+      sessionStorage.removeItem('flowboard_name');
+      const storedDescription = sessionStorage.getItem('flowboard_description');
+      if (storedDescription) {
+        this.canvasData.description = storedDescription;
+        sessionStorage.removeItem('flowboard_description');
+      }
+    }
+    
+    // Load AI table names for automatic mapping
+    if (storedSourceTable || storedTargetTable) {
+      // Generate AI instruction from table names
+      this.aiInstruction = `Analyze source table '${storedSourceTable}' and target table '${storedTargetTable}' and create intelligent mappings`;
+      this.aiProvider = storedAiProvider || 'heuristic';
+      
+      // Store for later use
+      (this as any).sourceTableName = storedSourceTable;
+      (this as any).targetTableName = storedTargetTable;
+      
+      sessionStorage.removeItem('flowboard_source_table');
+      sessionStorage.removeItem('flowboard_target_table');
+      sessionStorage.removeItem('flowboard_ai_provider');
+    }
+    
     this.intializeDrawflow();
   }
   intializeDrawflow() {
@@ -444,6 +481,14 @@ export class FlowboardComponent {
         } else {
           this.getConnectionData(connection);
           this.getDropdownColumnsData(this.drawflow.getNodeFromId(input_id));
+          
+          // Auto-generate mappings if target node and AI instructions exist
+          if (nodeType === 'target_data_object' && this.aiInstruction && this.aiInstruction.trim()) {
+            setTimeout(() => {
+              this.selectedNode = this.drawflow.getNodeFromId(input_id);
+              this.autoGenerateMappingsForNode(input_id);
+            }, 500);
+          }
         }
 
       });
@@ -457,58 +502,18 @@ export class FlowboardComponent {
         const sourceNode = this.drawflow.getNodeFromId(output_id);
         const targetNode = this.drawflow.getNodeFromId(input_id);
 
-        if (targetNode.data.type === 'Joiner') {
-          const nodeNamesDropdown = targetNode.data.nodeData.properties.nodeNamesDropdown;
-          const sourceNodeName = sourceNode.data.nodeData.general.name;
-      
-          const index = nodeNamesDropdown.findIndex((item:any) => item.label === sourceNodeName);
-          if (index !== -1) {
-            const sourceNodeValue = nodeNamesDropdown[index].value;
-            nodeNamesDropdown.splice(index, 1);
-
-            const joinList = targetNode.data.nodeData.properties.joinList;
-            const joinIndex = joinList.findIndex((join:any) => join.sourceNodeId === sourceNodeValue);
-            if (joinIndex !== -1) {
-              joinList.splice(joinIndex, 1);
-            }
-
-            if (targetNode.data.nodeData.properties.primaryObject?.value === sourceNodeValue) {
-              targetNode.data.nodeData.properties.primaryObject = null;
-            }
-
-            if(nodeNamesDropdown.length <= 1){
-              targetNode.data.nodeData.properties.joinList = [];
-            }
-            this.drawflow.updateNodeDataFromId(targetNode.id, targetNode.data);
+        if(targetNode.data.type === 'Joiner'){
+          targetNode.data.nodeData.properties.nodeNamesDropdown.push({label: sourceNode.data.nodeData.general.name, value: sourceNode.id});
+          if(targetNode.data.nodeData.properties.nodeNamesDropdown.length > 1){
+            targetNode.data.nodeData.properties.joinList.push({joinType: '', secondaryObject: null, joinCondition: '', sourceNodeId: sourceNode.id, joinObject: null});
           }
+          this.drawflow.updateNodeDataFromId(targetNode.id, targetNode.data);
         }
-        this.selectedNode = this.drawflow.getNodeFromId(input_id);
-        if (this.selectedNode.data.type === 'target_data_object' && !this.selectedNode.data.nodeData.properties.create) {
-          const mapper = this.selectedNode.data.nodeData.attributeMapper
-          if (mapper.length > 0) {
-            mapper.forEach((attr: any) => {
-              attr.selectedColumn = null;
-              attr.selectedDataType = '';
-            });
-          }
-          this.selectedNode.data.nodeData.properties.truncate = false;
-        } else if(this.selectedNode.data.type === 'Expression'){
-          this.selectedNode.data.nodeData.attributes = [];
-        } else if(this.selectedNode.data.type === 'Rollup'){
-          this.selectedNode.data.nodeData.attributes = [];
-          this.selectedNode.data.nodeData.properties.havingClause = '';
-          this.selectedNode.data.nodeData.groupAttributes = [];
-        } else if(this.selectedNode.data.type === 'Joiner'){
-          this.selectedNode.data.nodeData.attributes = [];
-          this.selectedNode.data.nodeData.properties.whereClause = '';
-        } else if(this.selectedNode.data.type === 'filter'){
-          this.selectedNode.data.nodeData.properties.filterCondition = '';
-        }
-        this.getDropdownColumnsData(this.selectedNode);
-        if(this.selectedNode.hasOwnProperty('data')){
-          const node = this.drawflow.getNodeFromId(this.selectedNode.id);
-          this.getSelectedNodeData(node);
-        }
+
+        console.log('Output Node ID:', output_id);
+        console.log('Input Node ID:', input_id);
+        console.log('Source Node:', sourceNode);
+        console.log('Target Node:', targetNode);
       });
 
       this.drawflow.on('nodeSelected', (nodeId: number) => {
@@ -1489,6 +1494,163 @@ export class FlowboardComponent {
 
     return task;
   }
+  // Generate Load attribute mapping from natural language instruction
+  generateMappingFromInstruction() {
+    try {
+      if (!this.selectedNode || this.selectedNode.data.type !== 'target_data_object') {
+        this.toasterService.warning('Select a Target node to generate mappings', 'Info', { positionClass: 'toast-top-right' });
+        return;
+      }
+      const node = this.selectedNode;
+      // Build source schema from available upstream columns
+      const sourceCols = (node.data.nodeData.columnsDropdown || []).map((c: any) => ({
+        name: c.label || c.value || c,
+        type: c.dataType || 'text'
+      }));
+      // Build target schema from current mapper rows (target column + desired type)
+      const targetCols = (node.data.nodeData.attributeMapper || []).map((m: any) => ({
+        name: m.column,
+        type: m.dataType || 'text'
+      }));
+      if (targetCols.length === 0) {
+        this.toasterService.warning('Add at least one target column in the mapper table', 'Info', { positionClass: 'toast-top-right' });
+        return;
+      }
+      const sourceSchema = sourceCols;
+      const targetSchema = targetCols;
+      const payload = {
+        source_schema: sourceSchema,
+        target_schema: targetSchema,
+        instruction: this.aiInstruction,
+        ai_provider: this.aiProvider,
+        to_attribute_mapper: true
+      };
+      this.generatingMapping = true;
+      this.workbechService.aiSuggestMapping(payload).subscribe({
+        next: (res: any) => {
+          const attrMap: any[] = res?.attribute_mapper || [];
+          if (attrMap.length === 0) {
+            this.toasterService.info('No mappings were generated. Refine your sentence or add target rows.', 'Info', { positionClass: 'toast-top-right' });
+            this.generatingMapping = false;
+            return;
+          }
+          // Apply results into UI attributeMapper
+          const uiRows: any[] = node.data.nodeData.attributeMapper || [];
+          // Create a quick lookup for existing rows by target column
+          const byTarget: any = {};
+          uiRows.forEach((r: any) => byTarget[r.column] = r);
+          attrMap.forEach((row: any[]) => {
+            const target = row[0];
+            const sourceExpr = row[2];
+            const dtype = row[3];
+            let ui = byTarget[target];
+            if (!ui) {
+              // If backend returned a target not present, create a row
+              ui = { column: target, dataType: dtype, selectedColumn: null, selectedDataType: dtype };
+              uiRows.push(ui);
+              byTarget[target] = ui;
+            }
+            ui.dataType = dtype || ui.dataType;
+            ui.selectedDataType = dtype || ui.selectedDataType;
+            ui.selectedColumn = { label: sourceExpr, dataType: dtype };
+          });
+          node.data.nodeData.attributeMapper = uiRows;
+          this.drawflow.updateNodeDataFromId(node.id, node.data);
+          this.toasterService.success('Mappings generated', 'Success', { positionClass: 'toast-top-right' });
+        },
+        error: (err: any) => {
+          const msg = err?.error?.message || 'Failed to generate mappings';
+          this.toasterService.error(msg, 'Error', { positionClass: 'toast-top-right' });
+        },
+        complete: () => {
+          this.generatingMapping = false;
+        }
+      });
+    } catch (e) {
+      this.generatingMapping = false;
+      this.toasterService.error('Unexpected error while generating mappings', 'Error', { positionClass: 'toast-top-right' });
+    }
+  }
+
+  // Auto-generate mappings for a target node when connection is created
+  autoGenerateMappingsForNode(nodeId: number) {
+    try {
+      const node = this.drawflow.getNodeFromId(nodeId);
+      
+      if (!node || node.data.type !== 'target_data_object') {
+        return;
+      }
+
+      // Build source schema from available upstream columns
+      const sourceCols = (node.data.nodeData.columnsDropdown || []).map((c: any) => ({
+        name: c.label || c.value || c,
+        type: c.dataType || 'text'
+      }));
+
+      // Build target schema from current mapper rows
+      const targetCols = (node.data.nodeData.attributeMapper || []).map((m: any) => ({
+        name: m.column,
+        type: m.dataType || 'text'
+      }));
+
+      // If no target columns defined yet, skip auto-generation
+      if (targetCols.length === 0) {
+        console.log('No target columns defined yet, skipping auto-generation');
+        return;
+      }
+
+      const sourceSchema = sourceCols;
+      const targetSchema = targetCols;
+      const payload = {
+        source_schema: sourceSchema,
+        target_schema: targetSchema,
+        instruction: this.aiInstruction,
+        ai_provider: this.aiProvider,
+        to_attribute_mapper: true
+      };
+
+      this.workbechService.aiSuggestMapping(payload).subscribe({
+        next: (res: any) => {
+          const attrMap: any[] = res?.attribute_mapper || [];
+          if (attrMap.length === 0) {
+            console.log('No mappings were generated automatically');
+            return;
+          }
+
+          // Apply results into UI attributeMapper
+          const uiRows: any[] = node.data.nodeData.attributeMapper || [];
+          const byTarget: any = {};
+          uiRows.forEach((r: any) => byTarget[r.column] = r);
+
+          attrMap.forEach((row: any[]) => {
+            const target = row[0];
+            const sourceExpr = row[2];
+            const dtype = row[3];
+            let ui = byTarget[target];
+            if (!ui) {
+              ui = { column: target, dataType: dtype, selectedColumn: null, selectedDataType: dtype };
+              uiRows.push(ui);
+              byTarget[target] = ui;
+            }
+            ui.dataType = dtype || ui.dataType;
+            ui.selectedDataType = dtype || ui.selectedDataType;
+            ui.selectedColumn = { label: sourceExpr, dataType: dtype };
+          });
+
+          node.data.nodeData.attributeMapper = uiRows;
+          this.drawflow.updateNodeDataFromId(node.id, node.data);
+          this.toasterService.success('Mappings auto-generated based on your instructions', 'Success', { positionClass: 'toast-top-right' });
+        },
+        error: (err: any) => {
+          console.error('Auto-generation failed:', err);
+          // Don't show error toast for auto-generation failures
+        }
+      });
+    } catch (e) {
+      console.error('Error in auto-generation:', e);
+    }
+  }
+
   addNewAttribute(){
     let count = this.selectedNode.data.nodeData.attributes.length+1;
     let attribute = {attributeName: 'ATTR_NAME_'+count, dataType: 'varchar', expression: ''}

@@ -54,11 +54,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    #Oauth
+    # OAuth and API
     'oauth2_provider',
     'rest_framework',
+    'rest_framework_api_key',
 
-    #Apps
+    # Apps
     'authentication',
     'Connections',
     'FlowBoard',
@@ -153,15 +154,28 @@ Fernet_Key = config('DB_Fernet_Key').encode()
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  
-        
-    )
-
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ]
 }
 
-# AUTHENTICATION_BACKENDS = [
-#     'oauth2_provider.backends.OAuth2Backend',
-# ]
+# API Key settings
+API_KEY_CUSTOM_HEADER = 'HTTP_X_API_KEY'
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'oauth2_provider.backends.OAuth2Backend',
+)
 
 OAUTH2_PROVIDER = {
     "ACCESS_TOKEN_EXPIRE_SECONDS": 57600,  # 1 hour
@@ -284,3 +298,6 @@ FLOWBOARD_TO_DAG_MAPPING = {
 
 AIRFLOW_CONFIG_ROOT = os.environ.get("AIRFLOW_CONFIG_ROOT", "/opt/airflow/project/Configs/FlowBoard")
 AIRFLOW_SCHEDULER_CONFIG_ROOT = os.environ.get("AIRFLOW_SCHEDULER_CONFIG_ROOT", r"C:\Users\vsahithi\Desktop\datamplify\Datamplify_backend\Datamplify-DEV\Configs\Scheduler")
+
+# Google AI API Key for schema mapping
+os.environ['GOOGLE_AI_API_KEY'] = config('GOOGLE_AI_API_KEY', default='AIzaSyAK2s3xUtZpRcuCCD8SbXqbp8OLNmbtz4c')
