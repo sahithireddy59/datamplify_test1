@@ -227,24 +227,24 @@ export class WorkbenchService {
     // return this.http.delete<any>(`${environment.apiUrl}/dag_delete/` + this.accessToken + '/' + id);
   }
 
-  getFlowboardList(page: any, pageSize: any, search: any, type: any) {
+  getFlowboardList(page: any, pageSize: any, search: any) {
     const currentUser = localStorage.getItem('currentUser');
     this.accessToken = JSON.parse(currentUser!)['Token'];
     return this.http.get<any>(`${environment.apiUrl}/flowboard/list/` + `?page=${page}&page_size=${pageSize}` + (search ? `&search=${search}` : ``), { headers: this.buildHeaders(this.accessToken) });
     // return this.http.get<any>(`${environment.apiUrl}/dags_list/` + this.accessToken + `?page=${page}&page_size=${pageSize}` + (search ? `&search=${search}` : ``) + `&flow=${type}`);
   }
 
-  getTaskPlanList(page: any, pageSize: any, search: any, type: any) {
+  getTaskPlanList(page: any, pageSize: any, search: any) {
     const currentUser = localStorage.getItem('currentUser');
     this.accessToken = JSON.parse(currentUser!)['Token'];
     return this.http.get<any>(`${environment.apiUrl}/taskplan/list/` + `?page=${page}&page_size=${pageSize}` + (search ? `&search=${search}` : ``), { headers: this.buildHeaders(this.accessToken) });
     // return this.http.get<any>(`${environment.apiUrl}/dags_list/` + this.accessToken + `?page=${page}&page_size=${pageSize}` + (search ? `&search=${search}` : ``) + `&flow=${type}`);
   }
 
-  runEtl(dagId: any,type:any) {
+  runEtl(dagId: any, type:string) {
     const currentUser = localStorage.getItem('currentUser');
     this.accessToken = JSON.parse(currentUser!)['Token'];
-    return this.http.post<any>(`${environment.apiUrl}/monitor/Trigger/${dagId}`+`?type=${type}`, {}, { headers: this.buildHeaders(this.accessToken) });
+    return this.http.post<any>(`${environment.apiUrl}/monitor/Trigger/${dagId}?type=${type}`, {}, { headers: this.buildHeaders(this.accessToken) });
     // return this.http.post<any>(`${environment.apiUrl}/trigger/` + dagId + '/' + this.accessToken, {});
   }
 
@@ -294,11 +294,71 @@ export class WorkbenchService {
     // return this.http.post<any>(`${environment.apiUrl}/server_files/` + this.accessToken, object);
   }
 
-  // AI mapping suggest (heuristic/LLM) for FlowBoard Load
-  aiSuggestMapping(payload: any) {
+  getDashboardData() {
     const currentUser = localStorage.getItem('currentUser');
     this.accessToken = JSON.parse(currentUser!)['Token'];
-    return this.http.post<any>(`${environment.apiUrl}/flowboard/ai/mapping/suggest`, payload, { headers: this.buildHeaders(this.accessToken) });
+    return this.http.get<any>(`${environment.apiUrl}/monitor/Home`, { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  getMonitorKpiData(){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.get<any>(`${environment.apiUrl}/monitor/kpi_values/`, { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  getMonitorList(page: any, pageSize: any, search: any){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.get<any>(`${environment.apiUrl}/monitor/rescent_runs/` + `?page=${page}&page_size=${pageSize}` + (search ? `&search=${search}` : ``), { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  getSchedulerList(page: any, pageSize: any, search: any, status: any){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.get<any>(`${environment.apiUrl}/scheduler/schedulers/` + `?page=${page}&page_size=${pageSize}` + (search ? `&search=${search}` : ``) + (status ? `&status=${status}` : ``), { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  saveScheduler(object: any){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.post<any>(`${environment.apiUrl}/scheduler/schedulers/`, object, { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  updateScheduler(id:any, object: any){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.put<any>(`${environment.apiUrl}/scheduler/schedulers/${id}/`, object, { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  deleteScheduler(id: any){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.delete<any>(`${environment.apiUrl}/scheduler/schedulers/${id}/`, { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  getSchedukerKpisData(){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    // Using monitor KPIs as scheduler doesn't have separate KPI endpoint
+    return this.http.get<any>(`${environment.apiUrl}/monitor/kpi_values/`, { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  getScheduler(id: any){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.get<any>(`${environment.apiUrl}/scheduler/schedulers/${id}/`, { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  getUpcommingRuns(page: any, pageSize: any, search: any){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.get<any>(`${environment.apiUrl}/scheduler/schedulers/` + `?page=${page}&page_size=${pageSize}` + (search ? `&search=${search}` : ``), { headers: this.buildHeaders(this.accessToken) });
+  }
+
+  changeSchedulerStatus(object: any){
+    const currentUser = localStorage.getItem('currentUser');
+    this.accessToken = JSON.parse(currentUser!)['Token'];
+    return this.http.patch<any>(`${environment.apiUrl}/scheduler/schedulers/${object.id}/`, object, { headers: this.buildHeaders(this.accessToken) });
   }
 
   // Airflow API
@@ -307,7 +367,7 @@ export class WorkbenchService {
 
   getHeaders(): Observable<HttpHeaders> {
     const token = this.getStoredAirflowToken();
-    // const token = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsImlzcyI6W10sImF1ZCI6ImFwYWNoZS1haXJmbG93IiwibmJmIjoxNzUzODU3OTIxLCJleHAiOjE3NTM5NDQzMjEsImlhdCI6MTc1Mzg1NzkyMX0.ZkC6nv0t3xV2BQHeDhIS95Xif-NKqtGH_HsuTYBHAnDSCWQXijm5AsZkidvX6Pb7uMIN3p5aPuhg37dlSZFwOw';
+    // const token = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsImlzcyI6W10sImF1ZCI6ImFwYWNoZS1haXJmbG93IiwibmJmIjoxNzU5MTMzODI5LCJleHAiOjE3NTkyMjAyMjksImlhdCI6MTc1OTEzMzgyOX0.02JT5qbP7p0Ru2ennWynAWoh2o4irACTzvi8C4dBr3nCWQ-hqfdtHG24rQCfI9vC2EzWJaOQQKcChIHIE3AL3w';
     if (token) {
       return of(this.buildHeaders(token));
     } else {
@@ -410,11 +470,12 @@ export class WorkbenchService {
   }
 
   //dag runs data
-  getDagRuns(dagId: string, limit: number, state: string, runType: string, orderBy: string) {
+  getDagRuns(dagId: string, limit: number, cuurentPage: number, state: string, runType: string, orderBy: string) {
+    const offset = (cuurentPage - 1) * limit;
     return this.getHeaders().pipe(
       switchMap(headers =>
         this.retryWithTokenRefresh(() =>
-          this.http.get(`${environment.airflowApiUrl}/api/v2/dags/${dagId}/dagRuns?limit=${limit}&order_by=${orderBy}` + (state ? `&state=${state}` : ``) + (runType ? `&run_type=${runType}` : ``), {
+          this.http.get(`${environment.airflowApiUrl}/api/v2/dags/${dagId}/dagRuns?limit=${limit}&offset=${offset}&order_by=${orderBy}` + (state ? `&state=${state}` : ``) + (runType ? `&run_type=${runType}` : ``), {
             headers: headers,
           })
         )

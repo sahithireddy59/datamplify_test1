@@ -1,20 +1,20 @@
 
-<aside class="app-sidebar sticky" id="sidebar" [ngClass]="{ 'sticky-pin': scrolled }">
+<aside class="app-sidebar sticky container-background" id="sidebar" [ngClass]="{ 'sticky-pin': scrolled }">
   <!-- Start::main-sidebar-header -->
-  <div class="main-sidebar-header">
+  <div class="main-sidebar-header glass-card">
     <a routerLink="/datamplify/home" class="header-logo">
       <!-- <img src="./assets/images/brand/analytify-logo-genBI.png" alt="logo" class="desktop-logo">
       <img src="./assets/images/brand/dark-icon-analytify.png" alt="logo" class="toggle-logo">
       <img src="./assets/images/brand/analytify-logo-light-genBI.png" alt="logo" class="desktop-dark logo-width">
       <img src="./assets/images/brand/analytify-white-icon.png" alt="logo" class="toggle-dark"> -->
 
-      <img *ngIf="themeType === 'dark'" src="./assets/images/brand/datamplify_blue.png" alt="logo-dark" class="desktop-dark logo-width">
-      <img *ngIf="themeType === 'light'" src="./assets/images/brand/datamplify_white.png" alt="logo-light" class="desktop-dark logo-width">
+      <img src="./assets/images/brand/datamplify_blue.png" alt="logo-dark" class="desktop-logo logo-width">
+      <img src="./assets/images/brand/datamplify_white.png" alt="logo-light" class="desktop-dark logo-width">
     </a>
   </div>
   <!-- End::main-sidebar-header -->
   <!-- <ngx-simplebar> -->
-  <ngx-simplebar class="main-sidebar" id="sidebar-scroll">
+  <ngx-simplebar class="main-sidebar glass-card" id="sidebar-scroll">
     <nav class="main-menu-container nav nav-pills flex-column sub-open">
       <!-- <div class="slide-left" id="slide-left">
         <svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24"

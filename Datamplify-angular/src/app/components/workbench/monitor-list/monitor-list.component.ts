@@ -18,12 +18,44 @@ import Swal from 'sweetalert2';
   styleUrl: './monitor-list.component.scss'
 })
 export class MonitorListComponent {
-  gridView = false;
+  gridView = true;
   page: any = 1;
-  pageSize: any = 10;
+  pageSize: any = 9;
   totalItems: any;
   search: string = '';
   monitorsList: any[] = [];
+  listSkeletons = Array(9);
+  kpiSkeletons = Array(3);
+  isLoading: boolean = false;
+  kpiCards: any[] = [
+    {
+      title: "Running Pipelines",
+      value: 0,
+      valueClass: "text-info",
+      icon: "fe fe-play text-info",
+      iconBg: "bg-info-subtle",
+      subText: "Active now",
+      subTextClass: "text-info"
+    },
+    {
+      title: "Completed Today",
+      value: 0,
+      valueClass: "text-success",
+      icon: "fa-regular fa-circle-check text-success",
+      iconBg: "bg-success-subtle",
+      subText: "0%",
+      subTextClass: "text-success"
+    },
+    {
+      title: "Failed Tasks",
+      value: 0,
+      valueClass: "text-danger",
+      icon: "fa-solid fa-circle-exclamation text-danger",
+      iconBg: "bg-danger-subtle",
+      subText: "0%",
+      subTextClass: "text-danger"
+    },
+  ];
 
   constructor(private toasterService: ToastrService, private workbechService: WorkbenchService, private loaderService: LoaderService, private router: Router, private route: ActivatedRoute) {
   }
@@ -31,18 +63,46 @@ export class MonitorListComponent {
   ngOnInit() {
     this.loaderService.hide();
     this.getMonitorList();
+    this.getKpiData();
   }
 
   getMonitorList() {
-    this.workbechService.getDags(this.pageSize, this.page, this.search).subscribe({
+    this.isLoading = true;
+    this.workbechService.disableLoaderForNextRequest();
+    this.workbechService.getMonitorList(this.page, this.pageSize, this.search).subscribe({
       next: (data: any) => {
         console.log(data);
-        this.monitorsList = data?.dags;
-        this.totalItems = data?.total_entries;
+        this.monitorsList = data.runs_list.data;
+        this.totalItems = data.runs_list.total_records;
+        this.page = data.runs_list.page_number
+        this.pageSize = data.runs_list.page_size;
+        this.isLoading = false;
       },
       error: (error: any) => {
         this.toasterService.error(error.error.message, 'error', { positionClass: 'toast-top-right' });
         console.log(error);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  getKpiData(){
+    this.isLoading = true;
+    this.workbechService.disableLoaderForNextRequest();
+    this.workbechService.getMonitorKpiData().subscribe({
+      next: (data: any) => {
+        console.log(data);
+        this.kpiCards[0].value = data.Running;
+        this.kpiCards[1].value = data.success;
+        this.kpiCards[1].subText = data.success_rate+'%';
+        this.kpiCards[2].value = data.failed;
+        this.kpiCards[2].subText = data.failure_rate+'%';
+        this.isLoading = false;
+      },
+      error: (error: any) => {
+        this.toasterService.error(error.error.message, 'error', { positionClass: 'toast-top-right' });
+        console.log(error);
+        this.isLoading = false;
       }
     });
   }

@@ -436,10 +436,12 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
         task_map['cleanup_temporary_tables'] = cleanup_task
 
         # Set up task dependencies
+        init_param_task >> global_store_task
+        
         if config.get('flow',[]):
-            # Connect init_param_task to first task in flow
+            # Connect global_store_task to first task in flow
             first_task = config.get('flow')[0][0]
-            init_param_task >> task_map[first_task]
+            global_store_task >> task_map[first_task]
             
             # Connect flow tasks
             for parent, child in config.get('flow', []):
@@ -449,7 +451,8 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
             last_task = config.get('flow')[-1][-1]
             task_map[last_task] >> cleanup_task
         else:
-            init_param_task >> cleanup_task
+            # If no flow, connect directly to cleanup
+            global_store_task >> cleanup_task
 
         for param in sql_param_list:
             task_name = f"__sqlparam__{param['param_name']}"

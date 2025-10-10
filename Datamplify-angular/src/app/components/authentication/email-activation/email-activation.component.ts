@@ -73,10 +73,10 @@ start(minute:any) {
     // textSec = statSec;
 
     if (statSec < 10) {
-      console.log('inside', statSec);
+      // console.log('inside', statSec);
       textSec = '0' + statSec;
     } else {
-      console.log('else', statSec);
+      // console.log('else', statSec);
       textSec = statSec;
     }
 
@@ -117,14 +117,15 @@ validateOtp(){
       },
       error:(error)=>{
         console.log(error)
-        if(error){
-          Swal.fire({
-            icon: 'error',
-            title: 'error!',
-            text: error.error.message,
-            width: '400px',
-          })
-        }
+        // if(error){
+        //   Swal.fire({
+        //     icon: 'error',
+        //     title: 'error!',
+        //     text: error.error.message,
+        //     width: '400px',
+        //   })
+        // }
+        this.toasterService.error(error.error.message, 'Error');
       }
     }
   )
@@ -147,14 +148,15 @@ resendOtpApi(){
       },
       error:(error)=>{
         console.log(error)
-        if(error){
-          Swal.fire({
-            icon: 'error',
-            title: 'error!',
-            text: error.error.message,
-            width: '400px',
-          })
-        }
+        // if(error){
+        //   Swal.fire({
+        //     icon: 'error',
+        //     title: 'error!',
+        //     text: error.error.message,
+        //     width: '400px',
+        //   })
+        // }
+        this.toasterService.error(error.error.message, 'Error');
       }
     }
   )

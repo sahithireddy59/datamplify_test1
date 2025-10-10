@@ -6,6 +6,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { checkHoriMenu,switcherArrowFn} from './sidebar';
 import { ViewTemplateDrivenService } from '../../../components/workbench/view-template-driven.service';
 import { LoaderService } from '../../services/loader.service';
+import { CustomThemeService } from '../../../services/custom-theme.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -79,7 +80,8 @@ export class SidebarComponent{
     public renderer: Renderer2,
     private elementRef: ElementRef,
     private viewTemplateService:ViewTemplateDrivenService,
-    private loaderService:LoaderService
+    private loaderService:LoaderService,
+    private themeService: CustomThemeService
   ) {
     this.screenWidth = window.innerWidth;
 
@@ -123,22 +125,19 @@ export class SidebarComponent{
         if (item.title === 'Home') {
           return true;
         }
+        if (item.title === 'EasyConnect') { 
+          return true;
+        }
         if (item.title === 'FlowBoard') {
           return true;
         }
         if (item.title === 'TaskPlan') {
           return true;
         }
+        if (item.title === 'Scheduler') { 
+          return true;
+        }
         if (item.title === 'Monitoring') { 
-          return true;
-        }
-        if (item.title === 'ETL') { 
-          return true;
-        }
-        if (item.title === 'EasyConnect') { 
-          return true;
-        }
-        if (item.title === 'DataDeck') { 
           return true;
         }
       })
@@ -161,7 +160,7 @@ export class SidebarComponent{
     }
     switcherArrowFn();
 
-    this.themeType = localStorage.getItem('insightappsdarktheme') ?? 'light';
+    this.themeType = localStorage.getItem('vexel-menu-mode') ?? 'light';
   }
 
   @ViewChild('iconContainer', { static: true }) iconContainer!: ElementRef;

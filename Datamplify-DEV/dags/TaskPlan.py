@@ -407,8 +407,8 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
             },
             trigger_rule=TriggerRule.ALL_DONE,  # This ensures it runs no matter what
         )
-        # task_map['__init_global_params'] = init_param_task
-        # task_map[GLOBAL_PARAM_HOLDER] = global_store_task
+        task_map['__init_global_params'] = init_param_task
+        task_map[GLOBAL_PARAM_HOLDER] = global_store_task
         
         # for param in sql_param_list:
         #     task_name = f"__sqlparam__{param['param_name']}"
@@ -424,13 +424,24 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
         #         task_map[param['dependent_task']] >> sql_task
 
 
+        # Set up task dependencies
+        init_param_task >> global_store_task
+        
         if config.get('flow',[]):
+            # Connect global_store_task to first task in flow
+            first_task = config.get('flow')[0][0]
+            global_store_task >> task_map[first_task]
+            
+            # Connect flow tasks
             for parent, child in config.get('flow', []):
                 task_map[parent] >> task_map[child]
+            
+            # Connect last task to cleanup
             last_task = config.get('flow')[-1][-1]
             task_map[last_task] >> cleanup_task
         else:
-            init_param_task >> cleanup_task
+            # If no flow, connect directly to cleanup
+            global_store_task >> cleanup_task
 
         for param in sql_param_list:
             task_name = f"__sqlparam__{param['param_name']}"

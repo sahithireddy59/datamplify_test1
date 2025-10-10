@@ -29,7 +29,8 @@ export class SwitcherComponent {
     // this.renderer.setAttribute(htmlElement, 'data-toggled', 'close');
   
   this.renderer.setAttribute(htmlElement, 'data-menu-styles','dark');
-
+  this.renderer.setAttribute(htmlElement, 'data-header-styles', 'dark');
+  this.renderer.setAttribute(htmlElement, 'data-theme-mode', 'dark');
   }
   body = document.querySelector('body');
 
@@ -496,7 +497,7 @@ active=1;
           "15, 15, 36",
         menutype
           :
-          "dark",
+          "light",
         navigation_styles
           :
           "vertical",

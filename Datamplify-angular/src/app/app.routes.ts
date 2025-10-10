@@ -3,8 +3,6 @@ import { AuthenticationLayoutComponent } from './shared/layout-components/layout
 import { authen } from './shared/routes/authenticationroutes';
 import { workbench } from './shared/routes/workbenckroutes';
 import { WorkbenchLayoutsComponent } from './shared/layout-components/layouts/workbench-layouts/workbench-layouts.component';
-import { adminRoutes } from './components/admin/admin.routes';
-
 export const App_Route: Route[] = [
       { path: '', redirectTo: 'authentication/login', pathMatch: 'full' },
       {
@@ -13,7 +11,6 @@ export const App_Route: Route[] = [
       },
       { path: '', component: AuthenticationLayoutComponent, children: authen },
       { path: '', component: WorkbenchLayoutsComponent, children: workbench },
-      { path: 'admin', children: adminRoutes },
 
 
     ]

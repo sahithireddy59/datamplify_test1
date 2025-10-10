@@ -610,7 +610,7 @@ html[data-menu-styles=light] .app-sidebar .main-menu > .slide > .side-menu__item
 }
 
 html[data-menu-styles=dark] {
-  --menu-bg: var(--custom-white);
+  --menu-bg: #39165b;
   --menu-prime-color: #d3d4d7;
   --menu-border-color: rgba(255, 255, 255, 0.1);
 }
@@ -19218,7 +19218,7 @@ input[type=submit].btn-block, input[type=reset].btn-block, input[type=button].bt
   border: inherit !important;
   background-clip: border-box;
   border-radius: 0.375rem;
-  box-shadow: 0px 2px 3px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 32px #1f268726, inset 0 1px #fff6, inset 0 -1px #ffffff1a;
   color: var(--default-text-color);
 }
 .card > hr {
@@ -42547,13 +42547,14 @@ a.text-primary:hover, a.text-primary:focus {
 
 .login-img {
   position: relative;
-  background-image: url(../images/backgrounds/1.png);
+  /* background-image: url(../images/backgrounds/1.png); */
+  background-image: url(../images/backgrounds/login-bg1.jpg);
   background-repeat: repeat;
 }
 
 .login-img::before {
   content: "";
-  background: linear-gradient(to right, var(--primary07) 0%, var(--primary07) 100%);
+  /* background: linear-gradient(to right, var(--primary07) 0%, var(--primary07) 100%); */
   height: 100%;
   width: 100%;
   position: absolute;
@@ -55490,4 +55491,34 @@ button.btn {
     }
     #htmlContent p {
       margin: 0px !important;
+    }
+
+    .transform-card { position: relative; /* ensures z-index works */
+  transition: transform 0.3s ease; overflow: visible;}
+
+    .transform-card:hover{ transform: scale(1.04);
+  z-index: 10; /* bring the whole card (and dropdown) to the top */}
+  
+  .transform-card .dropdown {
+  position: relative; /* or fixed if needed */
+  z-index: 20; /* higher than the card’s z-index */
+}
+    .card {border: none !important; border-radius: 1rem;}
+    .card .card { border: none !important; }
+    .animate-button {
+        touch-action: manipulation;
+        border: 1px solid #0360df;
+        border-radius: 50px;
+        padding: 12px 16px;
+        background-color: #0360df;
+        background-image: radial-gradient(75% 50% at 50% 0%, #f4feff 12%, transparent), radial-gradient(75% 50% at 50% 85%, #8de3fc, transparent);
+        box-shadow: inset 0 0 2px 1px rgba(255, 255, 255, 0.2), 0 1px 4px 1px rgba(17, 110, 231, 0.2), 0 1px 4px 1px rgba(0, 0, 0, 0.1);
+        color: #fff;
+        text-shadow: 0 1px 1px #116ee7;
+        transition-property: border-color, transform, background-color;
+        transition-duration: 0.2s;
+    }
+    .animate-button:hover {
+        transform: scale(1.04);
+            box-shadow: rgba(255, 255, 255, .2) 0 3px 15px inset, rgba(0, 0, 0, .1) 0 3px 5px, rgba(0, 0, 0, .1) 0 10px 13px;
     }

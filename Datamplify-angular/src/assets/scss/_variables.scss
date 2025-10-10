@@ -1,6 +1,6 @@
 :root {
-	--body-bg-rgb : 									223, 227, 232;
-	--primary-rgb: 										26, 62, 117;
+	--body-bg-rgb : 									#fff;
+	--primary-rgb: 										124, 92, 255;
 	--secondary-rgb :									219, 85, 93;
 	--warning-rgb :										247, 183, 37;
 	--info-rgb :										23, 177, 223;
@@ -51,6 +51,11 @@
     --font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --float-right: right;
     --float-left: left;
+	--main-header-bg: #fff;
+	--side-nav-bar-bg: #fff;
+	--page-header-bg: #fff;
+	--glass-bar-bg-color: rgba(0, 0, 0, 0.1);
+	--glass-bar-border-color: rgba(0, 0, 0, 0.2);
     
 
 	/* Gray set */
@@ -234,6 +239,12 @@ $black-9:												var(--black-9);
 	--input-border: 									rgba(255, 255, 255, 0.1);
 	--form-control-bg: 									#232628;
 	--fixed-white: 									    #ffffff;
+	--custom-white:										linear-gradient(135deg,rgba(34, 26, 67, 1) 0%, rgba(97, 34, 144, 1) 60%, rgba(16, 23, 44, 1) 100%);
+	--main-header-bg:                                   linear-gradient(90deg, rgb(0, 15, 43) 30%, rgba(46, 22, 78, 1) 80%, rgba(71, 19, 112, 1) 100%);
+	--side-nav-bar-bg:                                  linear-gradient(180deg,rgba(0, 15, 43) 30%, rgba(7, 20, 46) 60%, rgba(54, 22, 87, 1) 86%, rgba(70, 18, 110, 1) 100%);
+	--page-header-bg:                                   linear-gradient(90deg, rgba(71, 19, 112, 1) 0%, rgba(46, 22, 78, 1) 80%, rgb(0, 15, 43) 100%);
+	--glass-bar-bg-color: rgba(255, 255, 255, 0.1);
+	--glass-bar-border-color: rgba(255, 255, 255, 0.2);
 
 	/* Gray Set */
     --gray-1: 										#110f0f;

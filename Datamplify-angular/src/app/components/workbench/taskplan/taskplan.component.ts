@@ -11,6 +11,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { EtlLoggerViewComponent } from '../etl-logger-view/etl-logger-view.component';
 import { DataFlowSearchFilterPipe } from '../../../shared/pipes/data-flow-search-filter.pipe';
 import { ResizableTopDirective } from '../../../shared/directives/resizable-top.directive';
+import { GlobalParametersService } from '../../../services/global-parameters.service';
 
 @Component({
   selector: 'app-taskplan',
@@ -59,6 +60,7 @@ export class TaskplanComponent {
   selectedGroup: any = '';
   selectedColumn: any = {};
   selectedIndex: number = -1;
+  systemParameters: any[] = [];
   isCanvasSelected: boolean = false;
   canvasData: any = { parameters: [], sqlParameters: [] };
   isParameter: boolean = false;
@@ -384,13 +386,37 @@ export class TaskplanComponent {
     'name', 'enum', 'composite', 'pg_lsn', 'txid_snapshot', 'unknown'
   ];
 
+  activeTab: string = 'flowboardInstance';
+  isEditing: boolean = false;
+  isValidFlowName: boolean = false;
+  viewMode: string = 'list';
+  componentsContent: any = {
+    flowboardInstance: [
+      { name: 'postgresSQL', icon: 'fa-database', type: 'dataFlow' },
+    ],
+    tasks: [
+      { name: 'Task Command', icon: 'fa-calculator', type: 'taskCommand' },
+      { name: 'DB Command', icon: 'fa-coins', type: 'dbCommand' },
+      { name: 'Loop', icon: 'fa-filter-circle-xmark', type: 'loop' },
+      { name: 'Email Notification', icon: 'fa-filter', type: 'email' }
+    ]
+  }
+  isFromMonitor: boolean = false;
+
   constructor(private modalService: NgbModal, private toasterService: ToastrService, private workbechService: WorkbenchService,
-    private loaderService: LoaderService, private router: Router, private route: ActivatedRoute) {
+    private loaderService: LoaderService, private router: Router, private route: ActivatedRoute,
+    private globalParamsService: GlobalParametersService) {
 
     if (this.router.url.startsWith('/datamplify/taskplanList/taskplan')) {
       if (route.snapshot.params['id1']) {
         const id = atob(route.snapshot.params['id1']);
         this.jobFlowId = id.toString();
+      }
+    } else if (this.router.url.startsWith('/datamplify/monitor/taskplan')) {
+      if (route.snapshot.params['id1']) {
+        const id = atob(route.snapshot.params['id1']);
+        this.jobFlowId = id.toString();
+        this.isFromMonitor = true;
       }
     }
   }
@@ -398,6 +424,47 @@ export class TaskplanComponent {
   ngOnInit() {
     this.loaderService.hide();
     this.intializeDrawflow();
+    this.loadSystemParameters();
+  }
+
+  loadSystemParameters() {
+    // Only load if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('No auth token found, using default system parameters');
+      this.setDefaultSystemParameters();
+      return;
+    }
+
+    this.globalParamsService.getGlobalParameters().subscribe({
+      next: (response) => {
+        this.systemParameters = response.data.filter((p: any) => p.is_system === true);
+        console.log('Loaded system parameters:', this.systemParameters.length);
+        
+        if (this.systemParameters.length === 0) {
+          this.setDefaultSystemParameters();
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load system parameters', error);
+        this.setDefaultSystemParameters();
+      }
+    });
+  }
+
+  setDefaultSystemParameters() {
+    const now = new Date();
+    this.systemParameters = [
+      { parameter_name: 'CURRENT_DATE', parameter_value: now.toISOString().split('T')[0], parameter_type: 'DATE', description: 'Current system date' },
+      { parameter_name: 'CURRENT_YEAR', parameter_value: now.getFullYear().toString(), parameter_type: 'STRING', description: 'Current year' },
+      { parameter_name: 'CURRENT_MONTH', parameter_value: (now.getMonth() + 1).toString().padStart(2, '0'), parameter_type: 'STRING', description: 'Current month' },
+      { parameter_name: 'CURRENT_DAY', parameter_value: now.getDate().toString().padStart(2, '0'), parameter_type: 'STRING', description: 'Current day' },
+      { parameter_name: 'mpfilepath', parameter_value: 'media/Datamplify', parameter_type: 'PATH', description: 'Datamplify base file path' },
+      { parameter_name: 'mpprojectpath', parameter_value: 'Datamplify-DEV', parameter_type: 'PATH', description: 'Project root directory' },
+      { parameter_name: 'mptemppath', parameter_value: 'media/Datamplify/temp', parameter_type: 'PATH', description: 'Temporary directory' },
+      { parameter_name: 'mplogpath', parameter_value: 'logs', parameter_type: 'PATH', description: 'Logs directory' }
+    ];
+    console.log('Using default system parameters:', this.systemParameters.length);
   }
   intializeDrawflow() {
     setTimeout(() => {
@@ -637,11 +704,12 @@ export class TaskplanComponent {
         }
       }
       let label = nodeName;
-      if (label.length > 8) {
-        label = label.substring(0, 8) + '..';
+      if (label.length > 10) {
+        label = label.substring(0, 10) + '..';
       }
       const container = document.createElement('div');
-      container.innerHTML = `<div><img src=\"${iconPath}\" class=\"node-icon\" alt=\"${altText}\" /><div class=\"node-label\"
+      container.innerHTML = `<div class="d-flex flex-column align-items-center">
+      <img src=\"${iconPath}\" class=\"node-icon\" alt=\"${altText}\" /><div class=\"node-label\"
         title=\"${nodeName}\">${label}</div><div class=\"node-status\" style=\"display:none;\"></div></div>`;
       return this.drawflow.addNode(nodeType, config.inputCount, config.outputCount, x, posY, nodeType, nodeData, container.innerHTML);
     };
@@ -663,14 +731,21 @@ export class TaskplanComponent {
     );
   }
 
-  updateNode(type: any) {
+  updateNode(type: any, nameInput?: any) {
     let data = {};
     let nodeId = '';
+    let previousName = '';
     if (type !== 'parameter') {
       nodeId = this.selectedNode.id;
+      previousName = this.selectedNode.data.nodeData.general.name;
     }
     if (type === 'general') {
-      const general = { name: this.nodeName }
+      let general;
+      if(nameInput && nameInput?.invalid && nameInput?.touched){
+        general = { name: this.selectedNode.data.nodeData.general.name}
+      } else{
+        general = { name: this.nodeName}
+      }
       nodeId = this.selectedNode.id;
       data = {
         ...this.selectedNode.data,
@@ -727,7 +802,7 @@ export class TaskplanComponent {
   }
 
   getDataFlowList() {
-    this.workbechService.getFlowboardList(1, 1000, '','dataflow').subscribe({
+    this.workbechService.getFlowboardList(1, 1000, '').subscribe({
       next: (data: any) => {
         console.log(data);
         this.dataFlowOptions = data.data;
@@ -932,7 +1007,7 @@ export class TaskplanComponent {
   }
 
   runJobFlow() {
-    this.workbechService.runEtl(this.taskId,'taskplan').subscribe({
+    this.workbechService.runEtl(this.taskId, 'taskplan').subscribe({
       next: (data: any) => {
         console.log(data);
         this.isRefrshEnable = true;
@@ -950,6 +1025,7 @@ export class TaskplanComponent {
           }
         });
         this.isLogShow = true;
+        this.logs = '';
         this.getJobFlowStatus(data.run_id);
         this.toasterService.success('Run Successfully', 'success', { positionClass: 'toast-top-right' });
       },
@@ -1159,16 +1235,25 @@ export class TaskplanComponent {
       this.selectedIndex = index;
     }
     let dataObject: any[] = [];
+    
+    // Always add system parameters first
+    const systemParamsData = this.systemParameters.map((param: any) => ({
+      label: '$' + param.parameter_name,
+      value: '$' + param.parameter_name,
+      dataType: param.parameter_type,
+      group: 'Project Parameters',
+      description: param.description
+    }));
+    
     if (attribute.paramName) {
-      dataObject = [''].map((col: any) => ({
-        label: '',
-        value: '',
-        dataType: '',
-        group: 'Project Parameters'
-      }));
+      // Only system parameters
+      dataObject = systemParamsData;
     } else {
       const nodeData = JSON.parse(JSON.stringify(this.selectedNode.data.nodeData));
       dataObject = nodeData.dataObject || [];
+      
+      // Add system parameters to the data object
+      dataObject = [...systemParamsData, ...dataObject];
     }
 
     this.groupedColumns = dataObject.reduce((acc: any, attr: any) => {
@@ -1340,6 +1425,7 @@ export class TaskplanComponent {
         this.taskId = data.Task_id;
         const drawFlowJson = JSON.parse(data.drawflow);
         this.drawflow.import(drawFlowJson);
+        this.validateFlowName(this.etlName);
         console.log(drawFlowJson);
         this.isRunEnable = true;
         this.canvasData = drawFlowJson.drawflow.Home.canvasData ? drawFlowJson.drawflow.Home.canvasData : { parameters: [], sqlParameters: [] };
@@ -1355,7 +1441,10 @@ export class TaskplanComponent {
             if (type && type !== 'dataFlow') {
               this.nodeTypeCounts[type] = (this.nodeTypeCounts[type] || 0) + 1;
             }
-            const displayName = (node.data?.nodeData?.general?.name || '').substring(0, 8) + '..';
+            let displayName = (node.data?.nodeData?.general?.name || '');
+            if (displayName.length > 10) {
+              displayName = (node.data?.nodeData?.general?.name || '').substring(0, 10) + '..';
+            } 
             const nodeElement = document.querySelector(`#node-${id}`);
             if (nodeElement) {
               const labelElement = nodeElement.querySelector('.node-label') as HTMLElement;
@@ -1365,6 +1454,9 @@ export class TaskplanComponent {
               }
             }
           });
+          if(this.isFromMonitor){
+            this.runJobFlow();
+          }
         }, 100);
       },
       error: (error: any) => {
@@ -1519,5 +1611,24 @@ export class TaskplanComponent {
       this.selectedGroup = this.functionGroupType[0].value;
       this.selectedColumn = this.functions['allFunctions'][0] || null;
     }
+  }
+
+  validateFlowName(value: string) {
+    const pattern = /^[a-zA-Z0-9_]+$/;
+    this.isValidFlowName = pattern.test(value);
+  }
+
+  createNewTaskplan(){
+    this.router.navigate(['/datamplify/taskplanList/taskplan']);
+  }
+
+  clearTaskplan(){
+    this.drawflow.clear();
+  }
+
+  goToFlowboard(){
+    const id = this.selectedNode?.data?.nodeData?.dataFlow?.id;
+    const encodedId = btoa(id.toString());
+    this.router.navigate(['/datamplify/flowboardList/flowboard/' + encodedId]);
   }
 }

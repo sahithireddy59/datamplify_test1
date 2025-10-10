@@ -7,13 +7,10 @@ import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts';
 import type { EChartsOption } from 'echarts';
 import * as echarts from 'echarts';
 import { WorkbenchService } from '../workbench.service';
-import { finalize } from 'rxjs/operators';
 import { ToastrService } from 'ngx-toastr';
-import { data } from 'jquery';
 import { EtlLoggerViewComponent } from '../etl-logger-view/etl-logger-view.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { json } from 'd3';
 import { SharedModule } from '../../../shared/sharedmodule';
 
 interface TaskRunStatus {
@@ -153,7 +150,7 @@ export class EtlMonitorComponent {
   }
 
   getRunsList(dagId:string, limit:number, state:string, runType:string, orderBy:string){
-    this.workbenchService.getDagRuns(dagId, limit, state, runType, orderBy).subscribe({
+    this.workbenchService.getDagRuns(dagId, limit, 1, state, runType, orderBy).subscribe({
       next: (data: any) => {
         console.log(data);
         this.runs = data.dag_runs;

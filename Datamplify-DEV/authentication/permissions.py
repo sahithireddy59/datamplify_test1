@@ -4,7 +4,7 @@ Permission checking utilities and decorators for RBAC
 from functools import wraps
 from django.http import JsonResponse
 from django.core.cache import cache
-from .models_rbac import UserRole, Permission
+from .models import UserRole, Permission
 
 
 def has_permission(user, permission_code):

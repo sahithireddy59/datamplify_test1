@@ -7,6 +7,7 @@ import { PasswordValidators } from '../../../shared/password-validator';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { AuthService } from '../../../shared/services/auth.service';
 import Swal from 'sweetalert2';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-register',
@@ -23,7 +24,7 @@ export class RegisterComponent {
 
   constructor(
     @Inject(DOCUMENT) private document: Document,private elementRef: ElementRef,private authService:AuthService,
-    private renderer: Renderer2,private formBuilder:FormBuilder,private router:Router
+    private renderer: Renderer2,private formBuilder:FormBuilder,private router:Router, private toastr: ToastrService
   ) {
     this.signupForm = this.formBuilder.group({
       username: ['', [Validators.required, Validators.maxLength(64)]],
@@ -148,13 +149,19 @@ onSubmit(){
         },
         error:(error:any)=>{
           console.log(error);
-          if(error){
-            Swal.fire({
-              icon: 'error',
-              title: 'oops!',
-              text: error.error.message,
-              width: '400px',
-            })
+
+          if (error?.error) {
+            const emailError = error.error.email?.[0];
+            const usernameError = error.error.username?.[0];
+
+            if (emailError) this.toastr.error(emailError, 'Error');
+            if (usernameError) this.toastr.error(usernameError, 'Error');
+
+            if (!emailError && !usernameError && error.error.message) {
+              this.toastr.error(error.error.message, 'Error');
+            }
+          } else {
+            this.toastr.error('Something went wrong!', 'Error');
           }
         }
       }

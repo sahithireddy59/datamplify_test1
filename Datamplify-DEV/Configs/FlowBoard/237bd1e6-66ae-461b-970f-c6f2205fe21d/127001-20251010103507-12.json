@@ -1,0 +1,81 @@
+{
+    "dag_name": "tet",
+    "parameters": [],
+    "sql_parameters": [],
+    "tasks": [
+        {
+            "type": "source_data_object",
+            "id": "SRC_TGT_dimsample_test",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "source_table_name": "TGT_dimsample_test",
+            "attributes": [],
+            "source_attributes": [
+                [
+                    "id_seq",
+                    "bigint",
+                    "id_seq",
+                    "bigint"
+                ],
+                [
+                    "o_sample_id",
+                    "character varying",
+                    "o_sample_id",
+                    "character varying"
+                ],
+                [
+                    "sample_id",
+                    "character varying",
+                    "sample_id",
+                    "character varying"
+                ],
+                [
+                    "flag",
+                    "integer",
+                    "flag",
+                    "integer"
+                ]
+            ]
+        },
+        {
+            "type": "Expression",
+            "id": "expression_1",
+            "expressions_list": [
+                [
+                    "ATTR_NAME_5",
+                    "varchar",
+                    "Project Parameters.$CURRENT_DATE"
+                ]
+            ],
+            "previous_task_id": "SRC_TGT_dimsample_test",
+            "previous_instance_id": "SRC_TGT_dimsample_test"
+        },
+        {
+            "type": "target_data_object",
+            "id": "TGT_tet",
+            "format": "database",
+            "hierarchy_id": "b8fefa68-981c-40b4-8cc8-11c45a479772",
+            "path": "",
+            "target_table_name": "tet",
+            "truncate": false,
+            "create": true,
+            "previous_task_id": "expression_1",
+            "previous_instance_id": "expression_1"
+        }
+    ],
+    "flow": [
+        [
+            "SRC_TGT_dimsample_test",
+            "expression_1"
+        ],
+        [
+            "expression_1",
+            "TGT_tet"
+        ]
+    ],
+    "dag_id": "127001-20251010103507-12",
+    "flow_name": "tet",
+    "username": "sahithi12",
+    "user_id": "237bd1e6-66ae-461b-970f-c6f2205fe21d"
+}

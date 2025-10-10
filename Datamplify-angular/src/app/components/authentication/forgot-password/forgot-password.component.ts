@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { PasswordValidators } from '../../../shared/password-validator';
 import Swal from 'sweetalert2';
 import { AuthService } from '../../../shared/services/auth.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-forgot-password',
@@ -23,7 +24,7 @@ export class ForgotPasswordComponent {
   token:any
   constructor(
     @Inject(DOCUMENT) private document: Document,private elementRef: ElementRef,private router:Router,private formBuilder:FormBuilder,
-    private renderer: Renderer2,private sanitizer: DomSanitizer,private authService:AuthService,private activatedRoute: ActivatedRoute
+    private renderer: Renderer2,private sanitizer: DomSanitizer,private authService:AuthService,private activatedRoute: ActivatedRoute, private toastr: ToastrService
 
   ) {
     const currentUrl = this.router.url;
@@ -152,14 +153,15 @@ submitForgotPasswordForm(){
     },
     error:(error:any)=>{
       console.log(error);
-      if(error){
-        Swal.fire({
-          icon: 'warning',
-          title: 'Oops!',
-          text: error.error.message,
-          width: '400px',
-         })
-      }
+      this.toastr.error(error.error.message, 'Error');
+      // if(error){
+      //   Swal.fire({
+      //     icon: 'warning',
+      //     title: 'Oops!',
+      //     text: error.error.message,
+      //     width: '400px',
+      //    })
+      // }
     }
   }
 ) 
@@ -192,12 +194,13 @@ submitResetPasswordForm(){
    }, 
    error:(error:any)=>{
     console.log(error);
-    Swal.fire({
-      icon: 'error',
-      title: 'OOps!',
-      text: error.error.message,
-      width: '400px',
-     })
+    // Swal.fire({
+    //   icon: 'error',
+    //   title: 'OOps!',
+    //   text: error.error.message,
+    //   width: '400px',
+    //  })
+     this.toastr.error(error.error.message, 'Error');
    }
  });
 }

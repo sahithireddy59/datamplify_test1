@@ -3,14 +3,12 @@ import { SharedModule } from '../../../shared/sharedmodule';
 import { CommonModule, DatePipe  } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { NgxPaginationModule } from 'ngx-pagination';
 import { ToastrService } from 'ngx-toastr';
 import { WorkbenchService } from '../workbench.service';
 import { LoaderService } from '../../../shared/services/loader.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import Swal from 'sweetalert2';
-import { SchedulerModalComponent } from '../../scheduler/scheduler-modal/scheduler-modal.component';
 
 @Component({
   selector: 'app-flowboard-list',
@@ -20,22 +18,16 @@ import { SchedulerModalComponent } from '../../scheduler/scheduler-modal/schedul
   styleUrl: './flowboard-list.component.scss'
 })
 export class FlowboardListComponent {
-  gridView = false;
+  gridView = true;
   page: any = 1;
-  pageSize: any = 10;
+  pageSize: any = 9;
   totalItems: any;
   search: string = '';
   dataFlowList: any[] = [];
-  
-  newFlowboard = {
-    name: '',
-    description: '',
-    sourceTable: '',
-    targetTable: '',
-    aiProvider: 'heuristic'
-  };
+  skeletons = Array(9);
+  isLoading: boolean = false;
 
-  constructor(private toasterService: ToastrService, private workbechService: WorkbenchService, private loaderService: LoaderService, private router: Router, private route: ActivatedRoute, private modal: NgbModal) {
+  constructor(private toasterService: ToastrService, private workbechService: WorkbenchService, private loaderService: LoaderService, private router: Router, private route: ActivatedRoute) {
   }
 
   ngOnInit() {
@@ -44,7 +36,9 @@ export class FlowboardListComponent {
   }
 
   getFlowboardList() {
-    this.workbechService.getFlowboardList(this.page, this.pageSize, this.search, 'dataflow').subscribe({
+    this.isLoading = true;
+    this.workbechService.disableLoaderForNextRequest();
+    this.workbechService.getFlowboardList(this.page, this.pageSize, this.search).subscribe({
       next: (data: any) => {
         console.log(data);
         this.dataFlowList = data.data;
@@ -56,10 +50,12 @@ export class FlowboardListComponent {
           this.page = 1;
           this.totalItems = 0;
         }
+        this.isLoading = false;
       },
       error: (error: any) => {
         this.toasterService.error(error.error.message, 'error', { positionClass: 'toast-top-right' });
         console.log(error);
+        this.isLoading = false;
       }
     });
   }
@@ -107,84 +103,5 @@ export class FlowboardListComponent {
       this.page = 1;
     }
     this.getFlowboardList();
-  }
-
-  openScheduler(flow: any) {
-    const ref = this.modal.open(SchedulerModalComponent, { size: 'lg' });
-    ref.componentInstance.defaultDagId = flow?.Flow_id;
-    ref.componentInstance.suggestedName = `${flow?.Flow_name || 'Flow'}-scheduler`;
-    ref.componentInstance.flowboardId = flow?.id;
-    ref.result.then(() => {
-      // no-op; could refresh a schedulers list if present
-    }).catch(() => {});
-  }
-
-  openNewFlowboardModal(content: any) {
-    // Reset form
-    this.newFlowboard = {
-      name: '',
-      description: '',
-      sourceTable: '',
-      targetTable: '',
-      aiProvider: 'heuristic'
-    };
-    this.modal.open(content, { size: 'lg' });
-  }
-
-  generateMappingDirectly(modal: any) {
-    if (!this.newFlowboard.sourceTable || !this.newFlowboard.targetTable) {
-      this.toasterService.warning('Please enter both source and target table names', 'Warning', { positionClass: 'toast-top-right' });
-      return;
-    }
-
-    if (this.newFlowboard.aiProvider === 'heuristic') {
-      this.toasterService.warning('Please select an AI provider (Google AI, Perplexity, or Ollama)', 'Warning', { positionClass: 'toast-top-right' });
-      return;
-    }
-
-    // Show loading message
-    this.toasterService.info('Generating mappings with AI...', 'Please wait', { positionClass: 'toast-top-right', timeOut: 3000 });
-
-    // Create instruction from table names
-    const instruction = `Analyze and map all columns from source table '${this.newFlowboard.sourceTable}' to target table '${this.newFlowboard.targetTable}'. Create intelligent mappings based on column names and data types.`;
-
-    // For now, just show the instruction that will be used
-    console.log('AI Instruction:', instruction);
-    console.log('AI Provider:', this.newFlowboard.aiProvider);
-    console.log('Source Table:', this.newFlowboard.sourceTable);
-    console.log('Target Table:', this.newFlowboard.targetTable);
-
-    // Store the data and navigate to FlowBoard with auto-generation enabled
-    sessionStorage.setItem('flowboard_name', this.newFlowboard.name || 'AI_Generated_Flow');
-    sessionStorage.setItem('flowboard_source_table', this.newFlowboard.sourceTable);
-    sessionStorage.setItem('flowboard_target_table', this.newFlowboard.targetTable);
-    sessionStorage.setItem('flowboard_ai_provider', this.newFlowboard.aiProvider);
-    sessionStorage.setItem('flowboard_ai_instruction', instruction);
-    sessionStorage.setItem('auto_generate_mapping', 'true');
-
-    modal.close();
-    this.toasterService.success('AI will generate mappings when you add nodes', 'Success', { positionClass: 'toast-top-right' });
-    this.router.navigate(['/datamplify/flowboardList/flowboard']);
-  }
-
-  createFlowboard(modal: any) {
-    if (!this.newFlowboard.name.trim()) {
-      this.toasterService.warning('Please enter a FlowBoard name', 'Warning', { positionClass: 'toast-top-right' });
-      return;
-    }
-
-    // Store FlowBoard metadata and AI table names
-    sessionStorage.setItem('flowboard_name', this.newFlowboard.name);
-    if (this.newFlowboard.description) {
-      sessionStorage.setItem('flowboard_description', this.newFlowboard.description);
-    }
-    if (this.newFlowboard.sourceTable || this.newFlowboard.targetTable) {
-      sessionStorage.setItem('flowboard_source_table', this.newFlowboard.sourceTable);
-      sessionStorage.setItem('flowboard_target_table', this.newFlowboard.targetTable);
-      sessionStorage.setItem('flowboard_ai_provider', this.newFlowboard.aiProvider);
-    }
-
-    modal.close();
-    this.router.navigate(['/datamplify/flowboardList/flowboard']);
   }
 }

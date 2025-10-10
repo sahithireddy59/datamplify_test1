@@ -1,0 +1,558 @@
+<div class="global-parameters-container p-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+      <i class="bi bi-gear-fill me-2"></i>
+      Global Parameters & CSV Load Configuration
+    </h3>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'parameters'" (click)="switchTab('parameters')" style="cursor: pointer;">
+        <i class="bi bi-list-ul me-2"></i>Global Parameters
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'direct-load'" (click)="switchTab('direct-load')" style="cursor: pointer;">
+        <i class="bi bi-arrow-down-circle me-2"></i>Direct Load
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'indirect-load'" (click)="switchTab('indirect-load')" style="cursor: pointer;">
+        <i class="bi bi-arrow-right-circle me-2"></i>Indirect Load
+      </a>
+    </li>
+  </ul>
+
+  <!-- ==================== Global Parameters Tab ==================== -->
+  <div *ngIf="activeTab === 'parameters'">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex align-items-center gap-3">
+        <label class="mb-0">Filter by Category:</label>
+        <select class="form-select w-auto" [(ngModel)]="selectedCategory" (change)="onCategoryChange()">
+          <option value="ALL">All Categories</option>
+          <option *ngFor="let cat of categories" [value]="cat.value">{{ cat.label }}</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" (click)="openParameterForm()">
+        <i class="bi bi-plus-circle me-2"></i>Add Parameter
+      </button>
+    </div>
+
+    <!-- System Parameters Section -->
+    <div *ngIf="systemParameters.length > 0" class="mb-4">
+      <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-lock-fill me-2"></i>
+        <strong>System Parameters (Read-Only)</strong>
+        <span class="ms-2 text-muted">- These are built-in parameters always available for use</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover table-sm">
+          <thead class="table-light">
+            <tr>
+              <th><i class="bi bi-lock me-1"></i>Parameter Name</th>
+              <th>Value</th>
+              <th>Type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let param of systemParameters" class="table-secondary">
+              <td>
+                <i class="bi bi-gear-fill me-2 text-primary"></i>
+                <strong>${{ param.parameter_name }}</strong>
+              </td>
+              <td><code>{{ param.parameter_value }}</code></td>
+              <td><span class="badge bg-primary">{{ param.parameter_type }}</span></td>
+              <td class="text-muted">{{ param.description }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- User Parameters Section -->
+    <div>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">
+          <i class="bi bi-person-fill me-2"></i>User-Defined Parameters
+        </h5>
+        <span class="badge bg-secondary">{{ userParameters.length }} parameters</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Parameter Name</th>
+              <th>Value</th>
+              <th>Type</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let param of userParameters">
+              <td><strong>${{ param.parameter_name }}</strong></td>
+              <td>{{ param.parameter_value }}</td>
+              <td><span class="badge bg-info">{{ param.parameter_type }}</span></td>
+              <td><span class="badge bg-secondary">{{ param.category }}</span></td>
+              <td>{{ param.description || '-' }}</td>
+              <td>
+                <span class="badge" [class.bg-success]="param.is_active" [class.bg-danger]="!param.is_active">
+                  {{ param.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary me-2" (click)="openParameterForm(param)" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" (click)="deleteParameter(param.id!)" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="userParameters.length === 0">
+              <td colspan="7" class="text-center text-muted py-4">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                No user-defined parameters yet. Click "Add Parameter" to create one.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Parameter Form Modal -->
+    <div class="modal" [class.show]="showParameterForm" [style.display]="showParameterForm ? 'block' : 'none'">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ isEditMode ? 'Edit' : 'Add' }} Global Parameter</h5>
+            <button type="button" class="btn-close" (click)="closeAllForms()"></button>
+          </div>
+          <div class="modal-body">
+            <form>
+              <div class="mb-3">
+                <label class="form-label">Parameter Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" [(ngModel)]="currentParameter.parameter_name" 
+                       [disabled]="isEditMode" name="paramName" placeholder="e.g., CSV_BATCH_SIZE">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Parameter Value <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" [(ngModel)]="currentParameter.parameter_value" 
+                       name="paramValue" placeholder="e.g., 1000">
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Type</label>
+                  <select class="form-select" [(ngModel)]="currentParameter.parameter_type" name="paramType">
+                    <option *ngFor="let type of parameterTypes" [value]="type.value">{{ type.label }}</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Category</label>
+                  <select class="form-select" [(ngModel)]="currentParameter.category" name="paramCategory">
+                    <option *ngFor="let cat of categories" [value]="cat.value">{{ cat.label }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" rows="3" [(ngModel)]="currentParameter.description" 
+                          name="paramDesc" placeholder="Describe this parameter..."></textarea>
+              </div>
+
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [(ngModel)]="currentParameter.is_active" 
+                       name="paramActive" id="paramActive">
+                <label class="form-check-label" for="paramActive">
+                  Active
+                </label>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeAllForms()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveParameter()">
+              {{ isEditMode ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Direct Load Tab ==================== -->
+  <div *ngIf="activeTab === 'direct-load'">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5>Direct Load Configurations</h5>
+      <button class="btn btn-primary" (click)="openDirectLoadForm()">
+        <i class="bi bi-plus-circle me-2"></i>Add Configuration
+      </button>
+    </div>
+
+    <!-- Direct Load Configs List -->
+    <div class="row">
+      <div class="col-md-6 mb-3" *ngFor="let config of directLoadConfigs">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h6 class="card-title mb-0">
+                {{ config.config_name }}
+                <span class="badge bg-success ms-2" *ngIf="config.is_default">Default</span>
+              </h6>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" (click)="openDirectLoadForm(config)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger" (click)="deleteDirectLoadConfig(config.id!)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="small text-muted">
+              <div><strong>Batch Size:</strong> {{ config.batch_size }}</div>
+              <div><strong>Delimiter:</strong> {{ config.delimiter }}</div>
+              <div><strong>Encoding:</strong> {{ config.encoding }}</div>
+              <div><strong>Error Handling:</strong> {{ config.error_handling }}</div>
+            </div>
+            <button class="btn btn-sm btn-outline-success mt-2" *ngIf="!config.is_default" 
+                    (click)="setAsDefaultDirect(config)">
+              Set as Default
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-12" *ngIf="directLoadConfigs.length === 0">
+        <div class="alert alert-info">No direct load configurations found. Create one to get started.</div>
+      </div>
+    </div>
+
+    <!-- Direct Load Form Modal -->
+    <div class="modal" [class.show]="showDirectLoadForm" [style.display]="showDirectLoadForm ? 'block' : 'none'">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ isEditMode ? 'Edit' : 'Add' }} Direct Load Configuration</h5>
+            <button type="button" class="btn-close" (click)="closeAllForms()"></button>
+          </div>
+          <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <form>
+              <!-- Basic Settings -->
+              <h6 class="border-bottom pb-2 mb-3">Basic Settings</h6>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Configuration Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" [(ngModel)]="currentDirectConfig.config_name" 
+                         name="directConfigName" placeholder="e.g., Production Direct Load">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Batch Size</label>
+                  <input type="number" class="form-control" [(ngModel)]="currentDirectConfig.batch_size" 
+                         name="directBatchSize" placeholder="1000">
+                </div>
+              </div>
+
+              <!-- File Format Settings -->
+              <h6 class="border-bottom pb-2 mb-3 mt-4">File Format Settings</h6>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Delimiter</label>
+                  <select class="form-select" [(ngModel)]="currentDirectConfig.delimiter" name="directDelimiter">
+                    <option *ngFor="let delim of delimiterOptions" [value]="delim">
+                      {{ delim === '\t' ? 'Tab' : delim }}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Encoding</label>
+                  <select class="form-select" [(ngModel)]="currentDirectConfig.encoding" name="directEncoding">
+                    <option *ngFor="let enc of encodingOptions" [value]="enc">{{ enc }}</option>
+                  </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Quote Character</label>
+                  <input type="text" class="form-control" [(ngModel)]="currentDirectConfig.quote_char" 
+                         name="directQuoteChar" maxlength="5">
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Escape Character</label>
+                  <input type="text" class="form-control" [(ngModel)]="currentDirectConfig.escape_char" 
+                         name="directEscapeChar" maxlength="5">
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Skip Rows</label>
+                  <input type="number" class="form-control" [(ngModel)]="currentDirectConfig.skip_rows" 
+                         name="directSkipRows" placeholder="0">
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" [(ngModel)]="currentDirectConfig.header_row" 
+                           name="directHeaderRow" id="directHeaderRow">
+                    <label class="form-check-label" for="directHeaderRow">
+                      Has Header Row
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Date/Time Formats -->
+              <h6 class="border-bottom pb-2 mb-3 mt-4">Date & Time Formats</h6>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Date Format</label>
+                  <input type="text" class="form-control" [(ngModel)]="currentDirectConfig.date_format" 
+                         name="directDateFormat" placeholder="%Y-%m-%d">
+                  <small class="text-muted">e.g., %Y-%m-%d for 2024-01-31</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Timestamp Format</label>
+                  <input type="text" class="form-control" [(ngModel)]="currentDirectConfig.timestamp_format" 
+                         name="directTimestampFormat" placeholder="%Y-%m-%d %H:%M:%S">
+                  <small class="text-muted">e.g., %Y-%m-%d %H:%M:%S</small>
+                </div>
+              </div>
+
+              <!-- Error Handling -->
+              <h6 class="border-bottom pb-2 mb-3 mt-4">Error Handling</h6>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Error Handling Strategy</label>
+                  <select class="form-select" [(ngModel)]="currentDirectConfig.error_handling" name="directErrorHandling">
+                    <option *ngFor="let opt of errorHandlingOptions" [value]="opt.value">{{ opt.label }}</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Max Errors</label>
+                  <input type="number" class="form-control" [(ngModel)]="currentDirectConfig.max_errors" 
+                         name="directMaxErrors" placeholder="100">
+                </div>
+              </div>
+
+              <!-- Null Values -->
+              <h6 class="border-bottom pb-2 mb-3 mt-4">Null Values</h6>
+              <div class="mb-3">
+                <label class="form-label">Null Value Representations</label>
+                <div *ngFor="let nullVal of currentDirectConfig.null_values; let i = index" class="input-group mb-2">
+                  <input type="text" class="form-control" [(ngModel)]="currentDirectConfig.null_values![i]" 
+                         [name]="'directNullVal' + i" placeholder="e.g., NULL, None, empty">
+                  <button class="btn btn-outline-danger" type="button" (click)="removeNullValue(currentDirectConfig, i)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="button" (click)="addNullValue(currentDirectConfig)">
+                  <i class="bi bi-plus-circle me-2"></i>Add Null Value
+                </button>
+              </div>
+
+              <!-- Default Setting -->
+              <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" [(ngModel)]="currentDirectConfig.is_default" 
+                       name="directIsDefault" id="directIsDefault">
+                <label class="form-check-label" for="directIsDefault">
+                  Set as Default Configuration
+                </label>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeAllForms()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveDirectLoadConfig()">
+              {{ isEditMode ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Indirect Load Tab ==================== -->
+  <div *ngIf="activeTab === 'indirect-load'">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5>Indirect Load Configurations</h5>
+      <button class="btn btn-primary" (click)="openIndirectLoadForm()">
+        <i class="bi bi-plus-circle me-2"></i>Add Configuration
+      </button>
+    </div>
+
+    <!-- Indirect Load Configs List -->
+    <div class="row">
+      <div class="col-md-6 mb-3" *ngFor="let config of indirectLoadConfigs">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h6 class="card-title mb-0">
+                {{ config.config_name }}
+                <span class="badge bg-success ms-2" *ngIf="config.is_default">Default</span>
+              </h6>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" (click)="openIndirectLoadForm(config)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger" (click)="deleteIndirectLoadConfig(config.id!)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="small text-muted">
+              <div><strong>Staging Path:</strong> {{ config.staging_path }}</div>
+              <div><strong>Staging Table:</strong> {{ config.staging_table }}</div>
+              <div><strong>Staging Schema:</strong> {{ config.staging_schema }}</div>
+              <div><strong>Bulk Insert:</strong> {{ config.use_bulk_insert ? 'Yes' : 'No' }}</div>
+            </div>
+            <button class="btn btn-sm btn-outline-success mt-2" *ngIf="!config.is_default" 
+                    (click)="setAsDefaultIndirect(config)">
+              Set as Default
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-12" *ngIf="indirectLoadConfigs.length === 0">
+        <div class="alert alert-info">No indirect load configurations found. Create one to get started.</div>
+      </div>
+    </div>
+
+    <!-- Indirect Load Form Modal (Similar structure to Direct Load) -->
+    <div class="modal" [class.show]="showIndirectLoadForm" [style.display]="showIndirectLoadForm ? 'block' : 'none'">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ isEditMode ? 'Edit' : 'Add' }} Indirect Load Configuration</h5>
+            <button type="button" class="btn-close" (click)="closeAllForms()"></button>
+          </div>
+          <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <form>
+              <!-- Basic Settings -->
+              <h6 class="border-bottom pb-2 mb-3">Basic Settings</h6>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Configuration Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" [(ngModel)]="currentIndirectConfig.config_name" 
+                         name="indirectConfigName" placeholder="e.g., Production Indirect Load">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Batch Size</label>
+                  <input type="number" class="form-control" [(ngModel)]="currentIndirectConfig.batch_size" 
+                         name="indirectBatchSize" placeholder="5000">
+                </div>
+              </div>
+
+              <!-- Staging Settings -->
+              <h6 class="border-bottom pb-2 mb-3 mt-4">Staging Settings</h6>
+              <div class="row">
+                <div class="col-md-12 mb-3">
+                  <label class="form-label">Staging Path <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" [(ngModel)]="currentIndirectConfig.staging_path" 
+                         name="indirectStagingPath" placeholder="/tmp/staging">
+                  <small class="text-muted">Path where staging files will be stored</small>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Staging Table <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" [(ngModel)]="currentIndirectConfig.staging_table" 
+                         name="indirectStagingTable" placeholder="staging_table">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Staging Schema</label>
+                  <input type="text" class="form-control" [(ngModel)]="currentIndirectConfig.staging_schema" 
+                         name="indirectStagingSchema" placeholder="staging">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" [(ngModel)]="currentIndirectConfig.use_bulk_insert" 
+                           name="indirectBulkInsert" id="indirectBulkInsert">
+                    <label class="form-check-label" for="indirectBulkInsert">
+                      Use Bulk Insert
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" [(ngModel)]="currentIndirectConfig.truncate_before_load" 
+                           name="indirectTruncate" id="indirectTruncate">
+                    <label class="form-check-label" for="indirectTruncate">
+                      Truncate Before Load
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- File Format Settings (Same as Direct Load) -->
+              <h6 class="border-bottom pb-2 mb-3 mt-4">File Format Settings</h6>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Delimiter</label>
+                  <select class="form-select" [(ngModel)]="currentIndirectConfig.delimiter" name="indirectDelimiter">
+                    <option *ngFor="let delim of delimiterOptions" [value]="delim">
+                      {{ delim === '\t' ? 'Tab' : delim }}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Encoding</label>
+                  <select class="form-select" [(ngModel)]="currentIndirectConfig.encoding" name="indirectEncoding">
+                    <option *ngFor="let enc of encodingOptions" [value]="enc">{{ enc }}</option>
+                  </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Quote Character</label>
+                  <input type="text" class="form-control" [(ngModel)]="currentIndirectConfig.quote_char" 
+                         name="indirectQuoteChar" maxlength="5">
+                </div>
+              </div>
+
+              <!-- Error Handling -->
+              <h6 class="border-bottom pb-2 mb-3 mt-4">Error Handling</h6>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Error Handling Strategy</label>
+                  <select class="form-select" [(ngModel)]="currentIndirectConfig.error_handling" name="indirectErrorHandling">
+                    <option *ngFor="let opt of errorHandlingOptions" [value]="opt.value">{{ opt.label }}</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Max Errors</label>
+                  <input type="number" class="form-control" [(ngModel)]="currentIndirectConfig.max_errors" 
+                         name="indirectMaxErrors" placeholder="100">
+                </div>
+              </div>
+
+              <!-- Default Setting -->
+              <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" [(ngModel)]="currentIndirectConfig.is_default" 
+                       name="indirectIsDefault" id="indirectIsDefault">
+                <label class="form-check-label" for="indirectIsDefault">
+                  Set as Default Configuration
+                </label>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeAllForms()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveIndirectLoadConfig()">
+              {{ isEditMode ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Backdrop -->
+<div class="modal-backdrop fade" [class.show]="showParameterForm || showDirectLoadForm || showIndirectLoadForm" 
+     *ngIf="showParameterForm || showDirectLoadForm || showIndirectLoadForm"></div>

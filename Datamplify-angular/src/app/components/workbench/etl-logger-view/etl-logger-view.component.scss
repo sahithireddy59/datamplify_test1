@@ -1,5 +1,5 @@
 .log-container {
-    background-color: #1e1e1e;
+    background-color: #382758;
     color: #d4d4d4;
     padding: 1rem;
     font-family: monospace;
@@ -8,37 +8,6 @@
     border-radius: 8px;
     white-space: pre-wrap;
   }
-  
-  // .log-line {
-  //   margin: 4px 0;
-  // }
-  
-  // .log-group-start {
-  //   color: #4ec9b0;
-  //   font-weight: bold;
-  //   margin-top: 8px;
-  // }
-  
-  // .log-group-end {
-  //   color: #c586c0;
-  //   font-style: italic;
-  //   margin-bottom: 8px;
-  // }
-  
-  // .log-source {
-  //   color: #9cdcfe;
-  //   margin-left: 20px;
-  // }
-  
-  // .log-meta {
-  //   color: #dcdcaa;
-  //   margin-left: 20px;
-  // }
-  
-  // details summary {
-  //   cursor: pointer;
-  //   color: #569cd6;
-  // }
 
   .log-line {
   padding: 4px 0;
@@ -49,7 +18,7 @@
 
 .log-group-start, .log-group-end {
   padding: 4px 0;
-  background-color: #353945;
+  background-color: #382758;
   border-radius: 3px;
   margin-bottom: 4px;
   margin-left: 0;
@@ -156,7 +125,7 @@
 .task-info-pre {
   padding: 8px;
   white-space: pre-wrap;
-  background-color: #353945;
+  background-color: #382758;
   overflow-x: auto;
   color: #fff;
 }

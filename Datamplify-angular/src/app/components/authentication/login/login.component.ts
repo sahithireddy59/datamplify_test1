@@ -10,6 +10,7 @@ import { SharedModule } from '../../../shared/sharedmodule';
 import { SwitcherComponent } from '../../../shared/layout-components/switcher/switcher.component';
 import { CustomThemeService } from '../../../services/custom-theme.service';
 import { LoaderService } from '../../../shared/services/loader.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-login',
@@ -45,7 +46,8 @@ toggleVisibility1() {
 }
   constructor(
     @Inject(DOCUMENT) private document: Document,private elementRef: ElementRef,private router: Router,private switcherComponent: SwitcherComponent,private themeService : CustomThemeService,
-    private renderer: Renderer2, private rolesService : RolespriviledgesService, private sanitizer: DomSanitizer,private formBuilder:FormBuilder,private authService:AuthService,private loaderService : LoaderService
+    private renderer: Renderer2, private rolesService : RolespriviledgesService, private sanitizer: DomSanitizer,private formBuilder:FormBuilder,private authService:AuthService,private loaderService : LoaderService,
+    private toastr: ToastrService
   ) {
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
@@ -93,20 +95,10 @@ this.authService.login(this.f['email'].value,this.f['password'].value)
     this.loaderService.hide();
     console.log(error);
     if(error.error.message === 'Account is in In-Active, please Activate your account'){
-      Swal.fire({
-        icon: 'error',
-        title: 'oops!',
-        text: error.error.message,
-        width: '400px',
-      })
+      this.toastr.info(error.error.message, 'Info');
       this.router.navigate(['/authentication/email-reactivation'])
     }else{
-      Swal.fire({
-        icon: 'error',
-        title: 'oops!',
-        text: error.error.message,
-        width: '400px',
-      })
+      this.toastr.error(error.error.message, 'Error');
     }
   }
 })

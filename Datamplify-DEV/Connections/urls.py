@@ -1,6 +1,8 @@
 from django.urls import path 
 from Connections.views import (Server_Connection,Server_Connection_update,get_available_schemas,
     File_Connection,File_operations,Connection_list,ETL_connection_list,Server_tables,FileSchema,ServerFileSchemaView,ListFilesView)
+from Connections.global_parameters_views import (GlobalParametersView, CSVLoadConfigurationView, DefaultConfigurationView, FilePathResolverView)
+
 urlpatterns = [
     path('Database_connection/',Server_Connection.as_view(),name= 'Database Server Connection'), #post
     path('Database_connection/<id>',Server_Connection_update.as_view(),name = 'Connection Update'), #update
@@ -12,7 +14,13 @@ urlpatterns = [
     path('Server_tables/<id>/',Server_tables.as_view(),name='get connected database tables'),
     path('file_schema/<id>/',FileSchema.as_view(),name='file columns'),
     path('server_files/',ServerFileSchemaView.as_view(),name='get columns from server files'),
-    path('ListFiles/',ListFilesView.as_view(),name='server_files_list')
+    path('ListFiles/',ListFilesView.as_view(),name='server_files_list'),
+    
+    # Global Parameters and CSV Load Configuration
+    path('global_parameters/',GlobalParametersView.as_view(),name='global_parameters'),
+    path('csv_load_config/',CSVLoadConfigurationView.as_view(),name='csv_load_config'),
+    path('default_config/',DefaultConfigurationView.as_view(),name='default_config'),
+    path('resolve_file_path/',FilePathResolverView.as_view(),name='resolve_file_path'),
 
 
 ]

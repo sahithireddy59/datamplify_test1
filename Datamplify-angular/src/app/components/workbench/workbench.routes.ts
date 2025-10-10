@@ -7,13 +7,6 @@ export const admin: Routes = [
 
   {
     path: 'datamplify', children: [
-
-      {
-        path: 'home',
-        canActivate: [authGuard],
-        loadComponent: () =>
-          import('./landingpage/landingpage.component').then((m) => m.LandingpageComponent)
-      },
       {
         path: 'users/users-list',
         canActivate: [authGuard],
@@ -73,7 +66,7 @@ export const admin: Routes = [
       },
 
       {
-        path: 'home/easyConnection',
+        path: 'easyConnection/newConnection',
         canActivate: [authGuard],
         loadComponent: () =>
           import('./easy-connection/easy-connection.component').then((m) => m.EasyConnectionComponent),
@@ -101,13 +94,6 @@ export const admin: Routes = [
       },
 
       {
-        path: 'scheduling',
-        canActivate: [authGuard],
-        loadComponent: () =>
-          import('./scheduler-list/scheduler-list.component').then((m) => m.SchedulerListComponent),
-      },
-
-      {
         path: 'flowboardList/flowboard',
         canActivate: [authGuard],
         loadComponent: () =>
@@ -116,6 +102,13 @@ export const admin: Routes = [
 
       {
         path: 'flowboardList/flowboard/:id1',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./flowboard/flowboard.component').then((m) => m.FlowboardComponent),
+      },
+
+      {
+        path: 'monitor/flowboard/:id1',
         canActivate: [authGuard],
         loadComponent: () =>
           import('./flowboard/flowboard.component').then((m) => m.FlowboardComponent),
@@ -136,31 +129,45 @@ export const admin: Routes = [
       },
 
       {
+        path: 'monitor/taskplan/:id1',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./flowboard/flowboard.component').then((m) => m.FlowboardComponent),
+      },
+
+      // {
+      //   path: 'monitorList/monitor/:id1',
+      //   canActivate: [authGuard],
+      //   loadComponent: () =>
+      //     import('./etl-monitor/etl-monitor.component').then((m) => m.EtlMonitorComponent),
+      // },
+
+      {
         path: 'monitorList/monitor/:id1',
         canActivate: [authGuard],
         loadComponent: () =>
-          import('./etl-monitor/etl-monitor.component').then((m) => m.EtlMonitorComponent),
+          import('./monitor/monitor.component').then((m) => m.MonitorComponent),
       },
 
       {
-        path: 'home/dashboard',
-        canActivate: [authGuard],
-        loadComponent: () =>
-          import('./etl-dashboard/etl-dashboard.component').then((m) => m.EtlDashboardComponent),
-      },
-
-      {
-        path: 'home/dashboard1',
+        path: 'home',
         canActivate: [authGuard],
         loadComponent: () =>
           import('./dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
 
       {
-        path: 'home/easyConnection1',
+        path: 'scheduler',
         canActivate: [authGuard],
         loadComponent: () =>
-          import('./easy-connect/easy-connect.component').then((m) => m.EasyConnectComponent),
+          import('./scheduler/scheduler.component').then((m) => m.SchedulerComponent),
+      },
+
+      {
+        path: 'global-parameters',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./global-parameters/global-parameters.component').then((m) => m.GlobalParametersComponent),
       },
     ]
   }

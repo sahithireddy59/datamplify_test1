@@ -1,8 +1,8 @@
      <!-- app-header -->
-     <header class="app-header header sticky">
+     <header class="app-header header sticky container-background">
 
         <!-- Start::main-header-container -->
-        <div class="main-header-container container-fluid">
+        <div class="main-header-container container-fluid glass-card">
 
             <!-- Start::header-content-left -->
             <div class="header-content-left align-items-center">
@@ -143,8 +143,9 @@
          
                 <!-- header search -->
 
-
-
+                <div class="mt-2">
+                    <h4 class="gradient-text">Welcome back, {{userName}}</h4>
+                </div>
             </div>
             <!-- End::header-content-left -->
 
@@ -272,7 +273,7 @@
       </span> 
       <span class="dark-layout"
         data-hs-theme-click-value="light"
-        (click)="themeChange('light', 'light','dark')"
+        (click)="themeChange('light', 'light','light')"
       >
         <!-- Start::header-link-icon -->
         <svg
@@ -842,9 +843,8 @@
                                 <!-- End::header-link -->
                             </div>
                             <!-- Start::header-element|main-profile-user -->
-                            <div *ngIf="!isPublicUrl" class="header-element main-profile-user" ngbDropdown>
-                                <!-- Start::header-link|dropdown-toggle -->
-                                <a href="javascript:void(0);" class="header-link dropdown-toggle d-flex align-items-center" ngbDropdownToggle
+                            <!-- <div *ngIf="!isPublicUrl" class="header-element main-profile-user">
+                                <a href="javascript:void(0);" class="header-link d-flex align-items-center"
                                     id="mainHeaderProfile" data-bs-toggle="dropdown" aria-expanded="false">
                                     <span class="me-2">
                                         <img src="./assets/images/users/21.jpg" alt="img" width="30"
@@ -852,65 +852,18 @@
                                     </span>
                                     <div class="d-xl-block d-none lh-1">
                                         <h6 class="fs-13 font-weight-semibold mb-0">{{userName}}</h6>
-                                        <!-- <span class="op-8 fs-10">Web Designer</span> -->
                                     </div>
                                 </a>
-                                <!-- End::header-link|dropdown-toggle -->
-                                <ul class="dropdown-menu pt-0 overflow-hidden dropdown-menu-end mt-1" ngbDropdownMenu
-                                    aria-labelledby="mainHeaderProfile">
-                                    <!-- <li><a ngbDropdownItem class="dropdown-item" routerLink="/pages/profile"><i
-                                                class="ti ti-user-circle fs-18 me-2 op-7"></i>Profile</a></li>
-                                    <li><a ngbDropdownItem class="dropdown-item" routerLink="/dashboard"><i
-                                                class="ti ti-inbox fs-18 me-2 op-7"></i>Dashboard</a></li>
-                                    <li><a ngbDropdownItem class="dropdown-item border-block-end" routerLink="/pages/extension/blog"><i
-                                                class="ti ti-clipboard-check fs-18 me-2 op-7"></i>Posts &
-                                            Activities</a></li>
-                                    <li><a ngbDropdownItem class="dropdown-item" routerLink="/pages/extension/settings"><i
-                                                class="ti ti-adjustments-horizontal fs-18 me-2 op-7"></i>Settings
-                                            & Privacy</a></li>
-                                    <li><a ngbDropdownItem class="dropdown-item border-block-end" routerLink="/pages/extension/faqs"><i
-                                                class="ti ti-help fs-18 me-2 op-7"></i>Help Center</a></li>
-                                    <li>
-                                        <hr class="dropdown-divider my-0">
-                                    </li>
-                                    <li><a ngbDropdownItem class="dropdown-item" routerLink="/authentication/register"><i
-                                                class="ti ti-user-plus fs-18 me-2 op-7"></i>Add Another
-                                            Account</a></li> -->
-                                    <li *ngIf="viewUsers"><a ngbDropdownItem class="dropdown-item" (click)="routeToUserDashboard()"><i
-                                        class="ti ti-user-circle fs-18 me-2 op-7"></i>List Users</a></li>
-                                    <li *ngIf="viewRoles"><a ngbDropdownItem class="dropdown-item" (click)="routeToRolesDashboard()"><i
-                                                    class="ti ti-clipboard-check fs-18 me-2 op-7"></i>List Roles</a></li>
-
-                                    <li><a ngbDropdownItem class="dropdown-item" (click)="routeToConfigurePage()"><i
-                                                class="ti ti-settings fs-18 me-2 op-7"></i>Configure</a></li>
-                                    <li><a ngbDropdownItem class="dropdown-item" (click)="routeToUpdatePasswordPage()"><i
-                                                class="ti ti-lock fs-18 me-2 op-7"></i>Update password</a></li>        
-                                    <li><a ngbDropdownItem class="dropdown-item" (click)="logOut()"><i
-                                                class="ti ti-power fs-18 me-2 op-7"></i>Sign Out</a></li>
-                                    <li>
-                                        <hr class="dropdown-divider my-0">
-                                    </li>
-                                    <li class="d-flex justify-content-center p-2">
-                                        <span><a class="fs-12 px-2 border-end"
-                                                href="javascript:void(0);">Privacy Policy</a></span>
-                                        <span><a class="fs-12 px-2 border-end"
-                                                href="javascript:void(0);">Terms</a></span>
-                                        <span><a class="fs-12 px-2 cursor"
-                                                (click)="routehelpGuide()">Help</a></span>
-                                    </li>
-                                </ul>
-                            </div>
-                            <!-- End::header-element|main-profile-user -->
+                            </div> -->
 
 
                         </div>
                     </div>
                 </div>
                 <!-- Start::header-element -->
-                <div *ngIf="!isPublicUrl" class="header-element">
+                <div *ngIf="!isPublicUrl" class="header-element" ngbDropdown container="body">
                     <!-- Start::header-link|switcher-icon -->
-                    <a href="javascript:void(0);" class="header-link switcher-icon" data-bs-toggle="offcanvas" (click)="SwicherOpen()"
-                        data-bs-target="#switcher-canvas">
+                    <a href="javascript:void(0);" class="header-link dropdown-toggle" ngbDropdownToggle>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                             class="header-link-icon fa-spin">
                             <path d="M0 0h24v24H0V0z" fill="none" />
@@ -919,6 +872,46 @@
                         </svg>
                     </a>
                     <!-- End::header-link|switcher-icon -->
+                    <ul class="dropdown-menu glass-dropdown pt-0 overflow-hidden dropdown-menu-end mt-1" ngbDropdownMenu
+                        aria-labelledby="mainHeaderProfile">
+                        <!-- <li><a ngbDropdownItem class="dropdown-item" routerLink="/pages/profile"><i
+                                                                    class="ti ti-user-circle fs-18 me-2 op-7"></i>Profile</a></li>
+                                                        <li><a ngbDropdownItem class="dropdown-item" routerLink="/dashboard"><i
+                                                                    class="ti ti-inbox fs-18 me-2 op-7"></i>Dashboard</a></li>
+                                                        <li><a ngbDropdownItem class="dropdown-item border-block-end" routerLink="/pages/extension/blog"><i
+                                                                    class="ti ti-clipboard-check fs-18 me-2 op-7"></i>Posts &
+                                                                Activities</a></li>
+                                                        <li><a ngbDropdownItem class="dropdown-item" routerLink="/pages/extension/settings"><i
+                                                                    class="ti ti-adjustments-horizontal fs-18 me-2 op-7"></i>Settings
+                                                                & Privacy</a></li>
+                                                        <li><a ngbDropdownItem class="dropdown-item border-block-end" routerLink="/pages/extension/faqs"><i
+                                                                    class="ti ti-help fs-18 me-2 op-7"></i>Help Center</a></li>
+                                                        <li>
+                                                            <hr class="dropdown-divider my-0">
+                                                        </li>
+                                                        <li><a ngbDropdownItem class="dropdown-item" routerLink="/authentication/register"><i
+                                                                    class="ti ti-user-plus fs-18 me-2 op-7"></i>Add Another
+                                                                Account</a></li> -->
+                        <li *ngIf="viewUsers"><a ngbDropdownItem class="dropdown-item" (click)="routeToUserDashboard()"><i
+                                    class="ti ti-user-circle fs-18 me-2 op-7"></i>List Users</a></li>
+                        <li *ngIf="viewRoles"><a ngbDropdownItem class="dropdown-item" (click)="routeToRolesDashboard()"><i
+                                    class="ti ti-clipboard-check fs-18 me-2 op-7"></i>List Roles</a></li>
+                    
+                        <!-- <li><a ngbDropdownItem class="dropdown-item"><i
+                                    class="ti ti-settings fs-18 me-2 op-7"></i>Configure</a></li> -->
+                        <!-- <li><a ngbDropdownItem class="dropdown-item" (click)="routeToUpdatePasswordPage()"><i
+                                    class="ti ti-lock fs-18 me-2 op-7"></i>Update password</a></li> -->
+                        <li><a ngbDropdownItem class="dropdown-item" (click)="logOut()"><i class="ti ti-power fs-18 me-2 op-7"></i>Sign
+                                Out</a></li>
+                        <li>
+                            <hr class="dropdown-divider my-0">
+                        </li>
+                        <!-- <li class="d-flex justify-content-center p-2">
+                            <span><a class="fs-12 px-2 border-end" href="javascript:void(0);">Privacy Policy</a></span>
+                            <span><a class="fs-12 px-2 border-end" href="javascript:void(0);">Terms</a></span>
+                            <span><a class="fs-12 px-2 cursor" (click)="routehelpGuide()">Help</a></span>
+                        </li> -->
+                    </ul>
                 </div>
                 <!-- End::header-element -->
 

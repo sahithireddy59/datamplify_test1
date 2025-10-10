@@ -9,15 +9,17 @@ import { NgxPaginationModule } from 'ngx-pagination';
 import { NgbModal, NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-easy-connection',
   standalone: true,
   imports: [SharedModule, FormsModule, CommonModule, NgxPaginationModule, NgbModule],
   templateUrl: './easy-connection.component.html',
-  styleUrls: ['./easy-connection.component.scss']
+  styleUrl: './easy-connection.component.scss'
 })
 export class EasyConnectionComponent {
+  // Common fields
   serverName: string = '';
   portName: string = '';
   databaseName: string = '';
@@ -25,41 +27,78 @@ export class EasyConnectionComponent {
   displayName: string = '';
   password: string = '';
   selectedSchema: string = 'public';
-
   selectedFile: File | null = null;
-
   schemaList: any[] = [];
-
+  
+  // Oracle specific
+  serviceName: string = '';
+  
+  // SQLite/Access specific
+  databasePath: string = '';
+  
+  // MongoDB specific
+  connectionString: string = '';
+  authDatabase: string = '';
+  
+  // Snowflake specific
+  account: string = '';
+  warehouse: string = '';
+  role: string = '';
+  
+  // Cassandra specific
+  keyspace: string = '';
+  
+  // CSV dynamic path fields
+  csvSourceType: string = 'upload'; // 'upload' or 'dynamic'
+  dynamicFilePath: string = '';
+  fileNameParameter: string = '';
+  
+  // File server details for dynamic path
+  fileServerType: string = 'local'; // 'local', 'ftp', 'sftp', 's3', 'azure', 'network'
+  fileServerHost: string = '';
+  fileServerPort: string = '';
+  fileServerProtocol: string = 'passive'; // 'active' or 'passive'
+  fileServerUsername: string = '';
+  fileServerPassword: string = '';
+  showFileServerPassword: boolean = false;
+  fileServerAuthType: string = 'password'; // 'password' or 'file'
+  selectedAuthFile: File | null = null;
   serverError: boolean = false;
   portError: boolean = false;
   databaseError: boolean = false;
   userNameError: boolean = false;
   displayNameError: boolean = false;
   passwordError: boolean = false;
-
   disableConnectBtn: boolean = true;
-
   toggleClass = "off-line";
   showPassword = false;
-  isFormEnabled: boolean = false;
-
-  gridView: boolean = false;
+  gridView: boolean = true;
   searchConnections: string = '';
-  pageSize: number = 10;
+  pageSize: number = 9;
   page: number = 1;
   totalItems: number = 0;
-
   connectionList: any[] = [];
-
   showList: boolean = true;
   isEditPreview: boolean = false;
   editPreviewData: any;
+  isLoading: boolean = false;
+  selectedCategory: string | null = null;
+  selectedConnectionType: string | null = null;
+  showRelational = false;
+  showNoSQL = false;
+  showCloudWarehouse = false;
+  showEnterprise = false;
+  showFiles = false;
+  viewNewConnection = false;
+  selectedConnection: string | null = null;
+  existingConnections: any = [];
+  skeletons = Array(9);
 
   constructor(private loaderService: LoaderService, private workbenchService: WorkbenchService, private toasterservice: ToastrService,
-    private modalService: NgbModal, private router: Router) {
-    if (this.router.url.startsWith('/datamplify/home/easyConnection')) {
+    private modalService: NgbModal, private router: Router,private sanitizer: DomSanitizer) {
+    if (this.router.url.startsWith('/datamplify/easyConnection/newConnection')) {
       this.showList = false;
-      this.isFormEnabled = false;
+      this.viewNewConnection = true;
     }
   }
 
@@ -70,13 +109,23 @@ export class EasyConnectionComponent {
     }
   }
 
+  displayNameConditionError() {
+    if (this.displayName) {
+      this.displayNameError = false;
+    } else {
+      this.displayNameError = true;
+    }
 
+    this.errorCheck();
+  }
   serverConditionError() {
     if (this.serverName) {
       this.serverError = false;
     } else {
       this.serverError = true;
     }
+
+    this.displayNameConditionError();
     this.errorCheck();
   }
   portConditionError() {
@@ -85,7 +134,7 @@ export class EasyConnectionComponent {
     } else {
       this.portError = true;
     }
-    this.serverConditionError();
+    this.serverConditionError()
     this.errorCheck();
   }
   databaseConditionError() {
@@ -106,23 +155,13 @@ export class EasyConnectionComponent {
     this.databaseConditionError();
     this.errorCheck();
   }
-  displayNameConditionError() {
-    if (this.displayName) {
-      this.displayNameError = false;
-    } else {
-      this.displayNameError = true;
-    }
-
-    this.userNameConditionError();
-    this.errorCheck();
-  }
   passwordConditionError() {
     if (this.password) {
       this.passwordError = false;
     } else {
       this.passwordError = true;
     }
-    this.displayNameConditionError();
+    this.userNameConditionError();
     this.errorCheck();
   }
   errorCheck() {
@@ -141,24 +180,6 @@ export class EasyConnectionComponent {
       this.toggleClass = "line";
     } else {
       this.toggleClass = "off-line";
-    }
-  }
-
-  openNewConnection() {
-    // Centralized handler for opening the new connection form
-    this.isEditPreview = false;
-    this.isFormEnabled = true;
-    this.showList = false;
-    this.resetForm();
-    console.log('New Connection: form opened');
-  }
-
-  viewConnections(){
-    if (this.router.url.startsWith('/datamplify/home/easyConnection')) {
-      this.router.navigate(['/datamplify/easyConnection/']); 
-    } else {
-      this.showList = true;
-      this.getConnectionList();
     }
   }
 
@@ -186,27 +207,62 @@ export class EasyConnectionComponent {
   }
 
   DatabaseConnection() {
-    let object = {
-      database_type: 1,
-      hostname: this.serverName,
-      port: this.portName,
-      username: this.userName,
-      password: this.password,
-      database: this.databaseName,
+    // Map connection names to database type IDs
+    const databaseTypeMap: { [key: string]: number } = {
+      'POSTGRESQL': 1,
+      'ORACLE': 3,
+      'MICROSOFTSQLSERVER': 4,
+      'SQLITE': 5,
+      'MONGODB': 6,
+      'CASSANDRA': 7,
+      'SNOWFLAKE': 8,
+      'MARIADB': 9,
+      'IBMDB2': 10,
+      'MICROSOFTACCESS': 11,
+      'SYBASE': 12,
+      'SAPHANA': 13,
+      'SAPBW': 14,
+      'MYSQL': 23
+    };
+    
+    let database_type = databaseTypeMap[this.selectedConnection || 'POSTGRESQL'] || 1;
+    
+    // Build object based on connection type requirements
+    let object: any = {
+      database_type: database_type,
       connection_name: this.displayName,
-      service_name: null,
-      schema: this.selectedSchema
+    };
+
+    // Add fields based on connection type
+    const config = this.getConnectionConfig(this.selectedConnection || 'POSTGRESQL');
+    
+    if (config.fields.includes('hostname')) object.hostname = this.serverName;
+    if (config.fields.includes('port')) object.port = this.portName;
+    if (config.fields.includes('database')) object.database = this.databaseName;
+    if (config.fields.includes('username')) object.username = this.userName;
+    if (config.fields.includes('password')) object.password = this.password;
+    if (config.fields.includes('schema')) object.schema = this.selectedSchema;
+    if (config.fields.includes('serviceName')) object.service_name = this.serviceName;
+    if (config.fields.includes('databasePath')) object.path = this.databasePath;
+    if (config.fields.includes('authDatabase')) object.auth_database = this.authDatabase;
+    if (config.fields.includes('keyspace')) object.keyspace = this.keyspace;
+    if (config.fields.includes('account')) object.account = this.account;
+    if (config.fields.includes('warehouse')) object.warehouse = this.warehouse;
+    if (config.fields.includes('role')) object.role = this.role;
+    
+    // Set service_name to null if not required
+    if (!config.requiresServiceName) {
+      object.service_name = null;
     }
+    
     console.log(object);
 
     this.workbenchService.databaseConnection(object).subscribe({
       next: (response) => {
         this.toasterservice.success(response.message,'success',{ positionClass: 'toast-top-right'});
         console.log('Connection successful:', response);
-        this.isFormEnabled = false;
-        this.showList = true;
         this.resetForm();
-        this.getConnectionList();
+        this.routeToViewConnection();
       },
       error: (error) => {
         this.toasterservice.error(error.error.message,'error',{ positionClass: 'toast-top-right'});
@@ -233,9 +289,8 @@ export class EasyConnectionComponent {
       next: (response) => {
         this.toasterservice.success(response.message,'success',{ positionClass: 'toast-top-right'});
         console.log('Connection successful:', response);
-        this.isFormEnabled = false;
-        this.showList = true;
         this.resetForm();
+        this.isEditPreview = false;
         this.getConnectionList();
       },
       error: (error) => {
@@ -258,8 +313,26 @@ export class EasyConnectionComponent {
         this.password = '';
         this.selectedSchema = response.schema;
         this.isEditPreview = true;
-        this.isFormEnabled = true;
-        this.showList = false;
+        
+        // Map database_type ID to connection name
+        const databaseTypeReverseMap: { [key: number]: string } = {
+          1: 'POSTGRESQL',
+          3: 'ORACLE',
+          4: 'MICROSOFTSQLSERVER',
+          5: 'SQLITE',
+          6: 'MONGODB',
+          7: 'CASSANDRA',
+          8: 'SNOWFLAKE',
+          9: 'MARIADB',
+          10: 'IBMDB2',
+          11: 'MICROSOFTACCESS',
+          12: 'SYBASE',
+          13: 'SAPHANA',
+          14: 'SAPBW',
+          23: 'MYSQL'
+        };
+        
+        this.selectedConnection = databaseTypeReverseMap[response.database_type] || 'POSTGRESQL';
       },
       error: (err) => {
         this.toasterservice.error(err.error.message, 'error', { positionClass: 'toast-top-right' });
@@ -307,6 +380,19 @@ export class EasyConnectionComponent {
     input.value = '';
   }
 
+  onAuthFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedAuthFile = input.files[0];
+      console.log('Auth file selected:', this.selectedAuthFile.name);
+    }
+    input.value = '';
+  }
+
+  clearAuthFile() {
+    this.selectedAuthFile = null;
+  }
+
   fileConnection(modal: any, hierarchyId?: string) {
     if (!this.selectedFile || !this.displayName) return;
 
@@ -321,12 +407,13 @@ export class EasyConnectionComponent {
       next: (response) => {
         this.toasterservice.success(response.message, 'Success', { positionClass: 'toast-top-right' });
         console.log('CSV upload successful:', response);
-
-        modal.close();
         this.resetForm();
-        this.isFormEnabled = false;
-        this.showList = true;
-        this.getConnectionList();
+        if(this.isEditPreview){
+          this.isEditPreview = false;
+          this.getConnectionList();
+        } else{
+          this.routeToViewConnection();
+        }
       },
       error: (error) => {
         this.toasterservice.error(error.error.message, 'Error', { positionClass: 'toast-top-right' });
@@ -341,8 +428,9 @@ export class EasyConnectionComponent {
         console.log(response);
         this.editPreviewData = response;
         this.isEditPreview = true;
-        this.openUploadModal(modal);
+        // this.openUploadModal(modal);
         this.displayName = response.connection_name;
+        this.selectedConnection = 'CSV';
       },
       error: (err) => {
         this.toasterservice.error(err.error.message, 'error', { positionClass: 'toast-top-right' });
@@ -379,13 +467,17 @@ export class EasyConnectionComponent {
   }
 
   getConnectionList() {
+    this.isLoading = true;
+    this.workbenchService.disableLoaderForNextRequest();
     this.workbenchService.getConnectionsList(this.page, this.pageSize, this.searchConnections).subscribe({
       next: (response: any) => {
         this.connectionList = response.data;
         this.totalItems = response.total_items ?? 10;
         console.log('Connections fetched successfully:', this.connectionList);
+        this.isLoading = false;
       },
       error: (err) => {
+        this.isLoading = false;
         this.toasterservice.error(err.error.message,'error',{ positionClass: 'toast-top-right'});
         console.error('Error fetching connections:', err);
       }
@@ -403,6 +495,7 @@ export class EasyConnectionComponent {
     this.editPreviewData = null;
     this.selectedFile = null;
     this.displayName = '';
+    this.selectedConnection = null;
     this.errorCheck();
   }
 
@@ -414,39 +507,338 @@ export class EasyConnectionComponent {
       this.getConnectionList();
   }
 
-  updatePagination() {
-    this.totalPages = Math.max(1, Math.ceil(this.connectionList.length / this.pageSize));
-    if (this.page > this.totalPages) this.page = this.totalPages;
+  routeToNewConnection(){
+    this.router.navigate(['/datamplify/easyConnection/newConnection']);
+  }
+  
+  routeToViewConnection(){
+    this.router.navigate(['/datamplify/easyConnection']);
   }
 
-  pagedItems(): any[] {
-    const start = (this.page - 1) * this.pageSize;
-    return this.connectionList.slice(start, start + this.pageSize);
+  connectionListIcons: any = {
+    // Relational Databases
+    MYSQL: { type: 'emoji', value: '🐬' },
+    POSTGRESQL: { type: 'emoji', value: '🐘' },
+    MARIADB: { type: 'emoji', value: '🦭' },
+    SQLITE: { type: 'emoji', value: '💾' },
+    MICROSOFTSQLSERVER: { type: 'emoji', value: '🖥️' },
+    SYBASE: { type: 'emoji', value: '📊' },
+    IBMDB2: { type: 'emoji', value: '💼' },
+    MICROSOFTACCESS: { type: 'emoji', value: '📁' },
+    // NoSQL Databases
+    MONGODB: { type: 'emoji', value: '🍃' },
+    CASSANDRA: { type: 'emoji', value: '💿' },
+    // Cloud Data Warehouse
+    SNOWFLAKE: { type: 'emoji', value: '❄️' },
+    // Enterprise Databases
+    ORACLE: { type: 'emoji', value: '🏛️' },
+    SAPHANA: { type: 'emoji', value: '🔷' },
+    'SAP HANA': { type: 'emoji', value: '🔷' },
+    SAPBW: { type: 'emoji', value: '🔶' },
+    'SAP BW': { type: 'emoji', value: '🔶' },
+    // File Sources
+    CSV: { type: 'emoji', value: '📑' },
+    EXCEL: { type: 'emoji', value: '📊' },
+    JSON: { type: 'emoji', value: '📋' },
+    XML: { type: 'emoji', value: '📄' },
+    PARQUET: { type: 'emoji', value: '📦' },
+    AVRO: { type: 'emoji', value: '🗃️' },
+    ORC: { type: 'emoji', value: '📚' },
+    TXT: { type: 'emoji', value: '📝' },
+  };
+  categories = [
+    { name: 'Relational Database', icon: '🛢️', description: 'Traditional SQL databases',count:'10' },
+    { name: 'NoSQL Database', icon: '📡', description: 'Document, Key-Value databases',count:'2' },
+    { name: 'Cloud Data Warehouse', icon: '☁️', description: 'Cloud-based data warehouses',count:'1' },
+    { name: 'Enterprise Database', icon: '🏢', description: 'Enterprise database systems',count:'2' },
+    { name: 'File Source', icon: '📂', description: 'File-based data sources',count:'8' },
+  ];
+  connectionTypes: { [key: string]: { name: string; icon?: string; description: string; image?: string; svg?: string }[] } = {
+    "Relational Database": [
+      { name: "MYSQL", icon: "🐬", description: "Popular open-source relational database" },
+      { name: "POSTGRESQL", icon: "🐘", description: "Advanced open-source relational database" },
+      { name: "MARIADB", icon: "🦭", description: "MySQL-compatible database" },
+      { name: "SQLITE", icon: "💾", description: "Lightweight embedded database" },
+      { name: "MICROSOFTSQLSERVER", icon: "🖥️", description: "Microsoft SQL Server database" },
+      { name: "SYBASE", icon: "📊", description: "Sybase database system" },
+      { name: "IBMDB2", icon: "💼", description: "IBM DB2 database" },
+      { name: "MICROSOFTACCESS", icon: "📁", description: "Microsoft Access database" },
+    ],
+    "NoSQL Database": [
+      { name: "MONGODB", icon: "🍃", description: "Document-oriented NoSQL database" },
+      { name: "CASSANDRA", icon: "💿", description: "Distributed NoSQL database" },
+    ],
+    "Cloud Data Warehouse": [
+      { name: "SNOWFLAKE", icon: "❄️", description: "Cloud data warehouse platform" },
+    ],
+    "Enterprise Database": [
+      { name: "ORACLE", icon: "🏛️", description: "Enterprise relational database" },
+      { name: "SAPHANA", icon: "🔷", description: "SAP HANA in-memory database" },
+      { name: "SAPBW", icon: "🔶", description: "SAP Business Warehouse" },
+    ],
+    "File Source": [
+      { name: "CSV", icon: "📑", description: "Comma-separated values file" },
+      { name: "EXCEL", icon: "📊", description: "Microsoft Excel spreadsheet" },
+      { name: "JSON", icon: "📋", description: "JavaScript Object Notation file" },
+      { name: "XML", icon: "📄", description: "Extensible Markup Language file" },
+      { name: "PARQUET", icon: "📦", description: "Columnar storage file format" },
+      { name: "AVRO", icon: "🗃️", description: "Data serialization format" },
+      { name: "ORC", icon: "📚", description: "Optimized Row Columnar format" },
+      { name: "TXT", icon: "📝", description: "Plain text file" },
+    ],
+  };
+
+  getSafeSvg(svg: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(svg);
   }
 
-  totalPages: number = 0;
-  gotoPage(p: number) {
-     this.totalPages = Math.ceil(this.totalItems / this.pageSize);
-    if (p < 1 || p > this.totalPages) return;
-    this.page = p;
+  // Get connection configuration for each database type
+  getConnectionConfig(connectionType: string): any {
+    const configs: { [key: string]: any } = {
+      'POSTGRESQL': {
+        fields: ['hostname', 'port', 'database', 'username', 'password', 'schema'],
+        defaultPort: '5432',
+        requiresSchema: true,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'MYSQL': {
+        fields: ['hostname', 'port', 'database', 'username', 'password'],
+        defaultPort: '3306',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'ORACLE': {
+        fields: ['hostname', 'port', 'serviceName', 'username', 'password'],
+        defaultPort: '1521',
+        requiresSchema: false,
+        requiresServiceName: true,
+        requiresPath: false
+      },
+      'MICROSOFTSQLSERVER': {
+        fields: ['hostname', 'port', 'database', 'username', 'password'],
+        defaultPort: '1433',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'SQLITE': {
+        fields: ['databasePath'],
+        defaultPort: '',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: true
+      },
+      'MONGODB': {
+        fields: ['hostname', 'port', 'database', 'username', 'password', 'authDatabase'],
+        defaultPort: '27017',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'CASSANDRA': {
+        fields: ['hostname', 'port', 'keyspace', 'username', 'password'],
+        defaultPort: '9042',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'SNOWFLAKE': {
+        fields: ['account', 'warehouse', 'database', 'schema', 'username', 'password', 'role'],
+        defaultPort: '443',
+        requiresSchema: true,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'MARIADB': {
+        fields: ['hostname', 'port', 'database', 'username', 'password'],
+        defaultPort: '3306',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'IBMDB2': {
+        fields: ['hostname', 'port', 'database', 'username', 'password'],
+        defaultPort: '50000',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'MICROSOFTACCESS': {
+        fields: ['databasePath'],
+        defaultPort: '',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: true
+      },
+      'SYBASE': {
+        fields: ['hostname', 'port', 'database', 'username', 'password'],
+        defaultPort: '5000',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'SAPHANA': {
+        fields: ['hostname', 'port', 'database', 'username', 'password'],
+        defaultPort: '30015',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      },
+      'SAPBW': {
+        fields: ['hostname', 'port', 'database', 'username', 'password'],
+        defaultPort: '30015',
+        requiresSchema: false,
+        requiresServiceName: false,
+        requiresPath: false
+      }
+    };
+    
+    return configs[connectionType] || configs['POSTGRESQL'];
   }
 
-  nextPage() { if (this.page < this.totalPages) this.page++; }
-  prevPage() { if (this.page > 1) this.page--; }
-
-  editConnection(conn: any) {
-    console.log('edit', conn);
-    // this.editPreviewDatabaseConnection(conn.hierarchy_id);
+  // Check if field is required for current connection
+  isFieldRequired(fieldName: string): boolean {
+    if (!this.selectedConnection) return false;
+    const config = this.getConnectionConfig(this.selectedConnection);
+    return config.fields.includes(fieldName);
   }
 
-  deleteConnection(conn: any) {
-    console.log('delete', conn);
-    // confirm then call delete
+  // Set default port when connection type is selected
+  setDefaultPort() {
+    if (this.selectedConnection) {
+      const config = this.getConnectionConfig(this.selectedConnection);
+      if (config.defaultPort && !this.portName) {
+        this.portName = config.defaultPort;
+      }
+    }
   }
 
-  viewConnection(conn: any) {
-    console.log('view', conn);
-    // open preview
+  categorySelect(categoryName: string) {
+    this.selectedCategory = categoryName;
+    console.log(this.selectedCategory);
+    this.viewNewConnection = false;
+    this.showRelational = false;
+    this.showNoSQL = false;
+    this.showCloudWarehouse = false;
+    this.showEnterprise = false;
+    this.showFiles = false;
+    switch (categoryName) {
+      case 'Relational Database':
+        this.showRelational = true;
+        break;
+      case 'NoSQL Database':
+        this.showNoSQL = true;
+        break;
+      case 'Cloud Data Warehouse':
+        this.showCloudWarehouse = true;
+        break;
+      case 'Enterprise Database':
+        this.showEnterprise = true;
+        break;
+      case 'File Source':
+        this.showFiles = true;
+        break;
+    }
+  }
+  goBackToCategories() {
+    this.showRelational = false;
+    this.showNoSQL = false;
+    this.showCloudWarehouse = false;
+    this.showEnterprise = false;
+    this.showFiles = false;
+    this.viewNewConnection = true;
+    this.selectedCategory = null;
+  }
+  selectConnection(connName: string) {
+    this.selectedConnection = connName;
+    this.setDefaultPort(); // Set default port for the selected connection
+    this.getSpecificConnections(this.selectedConnection);
+  }
+  getSpecificConnections(selectedConnection:any){
+    this.isLoading = true;
+    // Map connection names to database/file type IDs
+    const connectionTypeMap: { [key: string]: number } = {
+      'POSTGRESQL': 1,
+      'ORACLE': 3,
+      'MICROSOFTSQLSERVER': 4,
+      'SQLITE': 5,
+      'MONGODB': 6,
+      'CASSANDRA': 7,
+      'SNOWFLAKE': 8,
+      'MARIADB': 9,
+      'IBMDB2': 10,
+      'MICROSOFTACCESS': 11,
+      'SYBASE': 12,
+      'SAPHANA': 13,
+      'SAPBW': 14,
+      'CSV': 15,
+      'EXCEL': 16,
+      'JSON': 17,
+      'XML': 18,
+      'PARQUET': 19,
+      'AVRO': 20,
+      'ORC': 21,
+      'TXT': 22,
+      'MYSQL': 23
+    };
+    
+    let connectionTypeId = connectionTypeMap[selectedConnection] || 1;
+    this.workbenchService.disableLoaderForNextRequest();
+    this.workbenchService.getConnectionsForEtl(connectionTypeId).subscribe({
+      next: (data) => {
+        console.log(data);
+        this.existingConnections = data.data;
+        this.isLoading = false;
+      },
+      error: (error: any) => {
+        console.log(error);
+        this.toasterservice.error(error.error.message, 'error', { positionClass: 'toast-top-right' });
+        this.isLoading = false;
+      }
+    });
+  }
+  getConnectionAsset(connName: string) {
+    // Find the connection object from connectionTypes
+    for (const category in this.connectionTypes) {
+      const found = this.connectionTypes[category].find(c => c.name === connName);
+      if (found) {
+        if (found.icon) return { type: 'icon', value: found.icon };
+        if (found.image) return { type: 'image', value: found.image };
+        if (found.svg) return { type: 'svg', value: this.sanitizer.bypassSecurityTrustHtml(found.svg) };
+      }
+    }
+    // fallback
+    return { type: 'icon', value: '🔗' };
   }
 
+  goBackToSubCategories() {
+    this.showRelational = false;
+    this.showNoSQL = false;
+    this.showCloudWarehouse = false;
+    this.showEnterprise = false;
+    this.showFiles = false;
+    this.viewNewConnection = false;
+    this.selectedConnection = null;
+    this.existingConnections = [];
+
+    switch (this.selectedCategory) {
+      case 'Relational Database':
+        this.showRelational = true;
+        break;
+      case 'NoSQL Database':
+        this.showNoSQL = true;
+        break;
+      case 'Cloud Data Warehouse':
+        this.showCloudWarehouse = true;
+        break;
+      case 'Enterprise Database':
+        this.showEnterprise = true;
+        break;
+      case 'File Source':
+        this.showFiles = true;
+        break;
+    }
+  }
 }

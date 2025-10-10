@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 import json
 
-from .models_rbac import Permission, Role, UserRole
+from .models import Permission, Role, UserRole
 from .permissions import require_permission, has_permission, get_user_permissions, clear_user_permission_cache
 
 UserProfile = get_user_model()
@@ -395,3 +395,207 @@ def get_my_permissions(request):
         'permissions': permissions,
         'is_superuser': request.user.is_superuser
     })
+
+
+# ==================== User Management Views ====================
+
+@require_permission('user.view')
+@require_http_methods(["GET"])
+def list_users(request):
+    """List all users with their roles and permissions"""
+    search = request.GET.get('search', '')
+    role_filter = request.GET.get('role')
+    
+    users = UserProfile.objects.all()
+    
+    # Apply search filter
+    if search:
+        users = users.filter(
+            username__icontains=search
+        ) | users.filter(
+            email__icontains=search
+        )
+    
+    # Apply role filter
+    if role_filter and role_filter != 'all':
+        users = users.filter(user_roles__role__name=role_filter).distinct()
+    
+    user_data = []
+    for user in users:
+        # Get user roles
+        user_roles = UserRole.objects.filter(user=user).select_related('role')
+        roles = [{
+            'id': ur.role.id,
+            'name': ur.role.name,
+            'level': ur.role.level
+        } for ur in user_roles]
+        
+        # Get permissions
+        permissions = get_user_permissions(user)
+        
+        user_data.append({
+            'id': str(user.id),
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_active': user.is_active,
+            'is_superuser': user.is_superuser,
+            'last_login': user.last_login,
+            'created_at': user.created_at,
+            'roles': roles,
+            'permissions': permissions[:10],  # First 10 permissions for list view
+            'permission_count': len(permissions)
+        })
+    
+    return JsonResponse({
+        'users': user_data,
+        'total': len(user_data)
+    })
+
+
+@require_permission('user.view')
+@require_http_methods(["GET"])
+def get_user_detail(request, user_id):
+    """Get detailed information about a specific user"""
+    try:
+        user = UserProfile.objects.get(id=user_id)
+        
+        # Get user roles
+        user_roles = UserRole.objects.filter(user=user).select_related('role', 'assigned_by')
+        roles = [{
+            'id': ur.role.id,
+            'name': ur.role.name,
+            'description': ur.role.description,
+            'level': ur.role.level,
+            'assigned_at': ur.assigned_at,
+            'assigned_by': ur.assigned_by.username if ur.assigned_by else None
+        } for ur in user_roles]
+        
+        # Get all permissions
+        permissions = get_user_permissions(user)
+        
+        return JsonResponse({
+            'id': str(user.id),
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_active': user.is_active,
+            'is_superuser': user.is_superuser,
+            'last_login': user.last_login,
+            'created_at': user.created_at,
+            'updated_at': user.updated_at,
+            'roles': roles,
+            'permissions': permissions
+        })
+        
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+
+@require_permission('user.create')
+@require_http_methods(["POST"])
+@csrf_exempt
+def invite_user(request):
+    """Invite a new user (create user account)"""
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password', 'TempPassword123!')
+        role_id = data.get('role_id')
+        
+        if not username or not email:
+            return JsonResponse({'error': 'Username and email are required'}, status=400)
+        
+        # Check if user exists
+        if UserProfile.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already exists'}, status=400)
+        
+        if UserProfile.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'Email already exists'}, status=400)
+        
+        with transaction.atomic():
+            # Create user
+            user = UserProfile.objects.create_user(
+                username=username,
+                email=email,
+                password=password
+            )
+            
+            # Assign role if provided
+            if role_id:
+                role = Role.objects.get(id=role_id)
+                UserRole.objects.create(
+                    user=user,
+                    role=role,
+                    assigned_by=request.user
+                )
+        
+        return JsonResponse({
+            'message': 'User invited successfully',
+            'user': {
+                'id': str(user.id),
+                'username': user.username,
+                'email': user.email
+            }
+        }, status=201)
+        
+    except Role.DoesNotExist:
+        return JsonResponse({'error': 'Role not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_permission('user.edit')
+@require_http_methods(["PUT"])
+@csrf_exempt
+def update_user_status(request, user_id):
+    """Update user active status"""
+    try:
+        user = UserProfile.objects.get(id=user_id)
+        data = json.loads(request.body)
+        
+        if 'is_active' in data:
+            user.is_active = data['is_active']
+            user.save()
+        
+        return JsonResponse({
+            'message': 'User status updated successfully',
+            'is_active': user.is_active
+        })
+        
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_permission('user.delete')
+@require_http_methods(["DELETE"])
+def delete_user(request, user_id):
+    """Delete a user"""
+    try:
+        user = UserProfile.objects.get(id=user_id)
+        
+        # Prevent deleting yourself
+        if user.id == request.user.id:
+            return JsonResponse({'error': 'Cannot delete your own account'}, status=400)
+        
+        # Prevent deleting superusers
+        if user.is_superuser:
+            return JsonResponse({'error': 'Cannot delete superuser accounts'}, status=403)
+        
+        user.delete()
+        
+        return JsonResponse({'message': 'User deleted successfully'})
+        
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

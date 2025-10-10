@@ -24,7 +24,8 @@
 #resize-container {
     display: flex;
     width: 100%;
-    position: absolute;
+    // position: absolute;
+    background: var(--custom-white);
     /* Consider adding a min-height if content can be very short */
     /* min-height: calc(100vh - 200px); /* Example: viewport height minus header/footer */
 }
@@ -43,10 +44,10 @@
 }
 
 #divider {
-    width: 8px;
+    width: 0px;
     /* Slightly wider for easier grabbing */
     cursor: col-resize;
-    background-color: #e9ecef;
+    // background-color: #e9ecef;
     /* Lighter divider */
     align-self: stretch;
     z-index: 10;
@@ -146,10 +147,10 @@
 }
 
 // Smaller tabs for the details pane
-.nav-sm .nav-link {
-  font-size: 0.875rem; /* 14px if base is 16px */
-  padding: 0.4rem 0.8rem;
-}
+// .nav-sm .nav-link {
+//   font-size: 0.875rem; /* 14px if base is 16px */
+//   padding: 0.4rem 0.8rem;
+// }
 
 .log-container {
   white-space: pre; // Default to no wrap
@@ -172,4 +173,50 @@
 
 ::ng-deep #taskLogs .tab-pane {
     height: 100%;
+}
+
+.main-container {
+  background: var(--custom-white);
+//   border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+//   overflow: hidden;
+//   height: 100%;
+}
+
+.glass-card .card-header {
+        background: transparent;
+    }
+
+    .glass-card .tabs-menu-boxed .panel-tabs {
+        border-bottom: none !important;
+    }
+
+    .glass-card .tabs-menu-boxed .nav-link {
+        border: 0;
+        border-radius: 8px !important;
+        color: #958e8e;
+        // background-color: rgba(0,0,0,0.2);
+        margin-right: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .glass-card .tabs-menu-boxed .nav-link.active {
+        color: #fff;
+        font-weight: 600;
+        box-shadow: 0 2px 10px rgba(54, 124, 255, 0.4);
+    }
+    
+    .glass-card .tabs-menu-boxed .nav-link:not(.active):hover {
+       background-color: rgba(255,255,255,0.1);
+       color: #fff;
+    }
+
+    .glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  // border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  color: var(--default-text-color);
 }

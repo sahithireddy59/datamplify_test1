@@ -18,12 +18,14 @@ import Swal from 'sweetalert2';
   styleUrl: './taskplan-list.component.scss'
 })
 export class TaskplanListComponent {
-  gridView = false;
+  gridView = true;
   page: any = 1;
-  pageSize: any = 10;
+  pageSize: any = 9;
   totalItems: any;
   search: string = '';
   jobFlowList: any[] = [];
+  skeletons = Array(9);
+  isLoading: boolean = false
 
   constructor(private toasterService: ToastrService, private workbechService: WorkbenchService, private loaderService: LoaderService, private router: Router, private route: ActivatedRoute) {
   }
@@ -34,7 +36,9 @@ export class TaskplanListComponent {
   }
 
   getTaskplanList() {
-    this.workbechService.getTaskPlanList(this.page, this.pageSize, this.search, 'jobflow').subscribe({
+    this.isLoading = true;
+    this.workbechService.disableLoaderForNextRequest();
+    this.workbechService.getTaskPlanList(this.page, this.pageSize, this.search).subscribe({
       next: (data: any) => {
         console.log(data);
         this.jobFlowList = data.data;
@@ -46,10 +50,12 @@ export class TaskplanListComponent {
           this.page = 1;
           this.totalItems = 0;
         }
+        this.isLoading = false;
       },
       error: (error: any) => {
         this.toasterService.error(error.error.message, 'error', { positionClass: 'toast-top-right' });
         console.log(error);
+        this.isLoading = false;
       }
     });
   }

@@ -578,3 +578,84 @@ class DashboardStatsAPIView(APIView):
         except Exception as e:
             logger.error(f"Error getting dashboard stats: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@csrf_exempt
+def recent_runs(request):
+    """Get recent runs with pagination"""
+    tok1 = token_function(request)
+    if tok1["status"] != 200:
+        return JsonResponse({"message": "Unauthorized"}, status=401)
+    
+    user_id = tok1["user_id"]
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 10))
+    search = request.GET.get('search', '')
+    
+    try:
+        # Get recent runs from RunHistory
+        runs = RunHistory.objects.all().order_by('-started_at')
+        
+        if search:
+            runs = runs.filter(name__icontains=search)
+        
+        # Pagination
+        start = (page - 1) * page_size
+        end = start + page_size
+        total = runs.count()
+        
+        data = [{
+            'id': run.id,
+            'run_id': run.run_id,
+            'name': run.name,
+            'status': run.status,
+            'started_at': run.started_at.isoformat() if run.started_at else None,
+            'finished_at': run.finished_at.isoformat() if run.finished_at else None,
+            'duration': str(run.finished_at - run.started_at) if run.finished_at and run.started_at else None
+        } for run in runs[start:end]]
+        
+        return JsonResponse({
+            'data': data,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total + page_size - 1) // page_size
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting recent runs: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def kpi_values(request):
+    """Get KPI values for monitoring dashboard"""
+    tok1 = token_function(request)
+    if tok1["status"] != 200:
+        return JsonResponse({"message": "Unauthorized"}, status=401)
+    
+    try:
+        # Get counts
+        total_runs = RunHistory.objects.count()
+        successful_runs = RunHistory.objects.filter(status='success').count()
+        failed_runs = RunHistory.objects.filter(status='failed').count()
+        running_runs = RunHistory.objects.filter(status='running').count()
+        
+        # Calculate success rate
+        success_rate = (successful_runs / total_runs * 100) if total_runs > 0 else 0
+        failure_rate = (failed_runs / total_runs * 100) if total_runs > 0 else 0
+        
+        return JsonResponse({
+            'total_runs': total_runs,
+            'successful_runs': successful_runs,
+            'failed_runs': failed_runs,
+            'running_runs': running_runs,
+            'success_rate': round(success_rate, 2),
+            'failure_rate': round(failure_rate, 2),
+            'total_flowboards': FlowBoard.objects.count(),
+            'total_taskplans': TaskPlan.objects.count()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting KPI values: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

@@ -1,69 +1,109 @@
-<div class="main-container container-fluid mt-5">
-    <div class="row" style="max-height: 650px;">
-        <div class="col-md-12 mt-4" style="max-height: 650px;">
-            <div class="card" style="max-height: 650px;">
-                <!-- <div class="card-header p-1">
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-primary me-2" style="width: 45px;" ngbTooltip="Back to Flowboard List" container="body" placement="right" (click)="goBackToDataflowList()">
-                            <i class="fa fa-arrow-left" style="font-size: 16px;"></i>
-                        </button>
-                        <h5 class="card-title mb-0">FlowBoard</h5>
+<div class="main-container container-fluid">
+    <div class="row" style="max-height: 576px;">
+        <div class="col-md-12 mt-4" style="max-height: 560px;">
+            <div class="card rounded-0" style="max-height: 530px;">
+                <div class="card glass-card rounded-0 border-0 mb-0">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                
+                        <!-- Left side: Back + Flow Name -->
+                        <div class="d-flex align-items-center">
+                            <!-- Back button -->
+                            <button class="border-0 bg-transparent small me-2" (click)="goBackToDataflowList()">
+                                <i class="fa fa-arrow-left text-primary" style="font-size: 14px;"></i>
+                            </button>
+                
+                            <!-- Flow name text / input -->
+                            <div>
+                                <!-- Show text when not editing -->
+                                <h6 class="mb-0 fw-semibold small" *ngIf="!isEditing" (click)="isEditing = true"
+                                    style="cursor: pointer; font-size: 14px;">
+                                    {{ etlName || 'Enter Flowboard Name' }}
+                                    <i class="fa-solid fa-pencil text-primary"></i>
+                                </h6>
+                                <!-- <small class="text-muted" *ngIf="!isEditing" style="font-size: 12px;">Design Flowboard</small> -->
+                
+                                <!-- Show input when editing -->
+                                <input *ngIf="isEditing" #nameInput type="text" class="form-control form-control-sm"
+                                    style="font-size: 13px; height: 28px; padding: 2px 6px;" [(ngModel)]="etlName"
+                                    pattern="^[a-zA-Z0-9_]+$" (blur)="isEditing = false" (ngModelChange)="validateFlowName($event)"/>
+                                <div *ngIf="!isValidFlowName && etlName" class="text-danger small" style="font-size: 12px;">
+                                    *DataFlow name can only contain letters, numbers, and underscores.
+                                </div>
+                            </div>
+                        </div>
+                
+                        <!-- Right side: Buttons -->
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-primary rounded-4 btn-sm" (click)="createNewFlowboard()">
+                                <i class="fa fa-plus me-1" style="font-size: 12px;"></i> New Flowboard
+                            </button>
+                
+                            <button type="button" class="btn btn-outline-secondary rounded-4 btn-sm" (click)="clearFlowboard()">
+                                <i class="fa fa-eraser me-1" style="font-size: 12px;"></i> Clear
+                            </button>
+                
+                            <button *ngIf="!dataFlowId" type="button" class="btn btn-primary rounded-4 btn-sm"
+                                [disabled]="!etlName || !isValidFlowName" (click)="saveOrUpdateEtlDataFlow()">
+                                <i class="fa fa-save me-1" style="font-size: 12px;"></i> Save
+                            </button>
+                            <button *ngIf="dataFlowId" type="button" class="btn btn-primary rounded-4 btn-sm"
+                                [disabled]="!etlName || !isValidFlowName" (click)="saveOrUpdateEtlDataFlow()">
+                                <i class="fa fa-save me-1" style="font-size: 12px;"></i> Update
+                            </button>
+                
+                            <button type="button" class="btn mode-btn btn-sm" [disabled]="!isRunEnable" (click)="runDataFlow()"
+                                [ngbTooltip]="!isRunEnable ? 'Drag and connect the target data object to nodes to enable' : null"
+                                container="body">
+                                <i class="fa fa-play me-1" style="font-size: 12px;"></i> Run
+                            </button>
+                        </div>
+                
                     </div>
-                </div> -->
-                <div class="card-body p-0" style="max-height: 650px;">
-                    <div class="d-lg-flex d-block" style="max-height: 650px;">
-                        <div class="col-10 p-1 mt-1">
-                            <!-- <div type="button" class="card mb-0 hide-show-btn btn-primary" (click)="isOpen = !isOpen">
-                                <i *ngIf="isOpen" class="fa fa-angle-left fs-18"></i>
-                                <i *ngIf="!isOpen" class="fa fa-angle-right fs-18"></i>
-                            </div> -->
-                            <div *ngIf="dataFlowName.invalid" class="text-danger small">
-                                *DataFlow name can only contain letters, numbers, and underscores.
-                            </div>
-                            <div class="d-flex justify-content-end mb-2">
-                                <button class="btn btn-primary me-2" style="width: 45px;" ngbTooltip="Back to Flowboard List" container="body"
-                                    placement="right" (click)="goBackToDataflowList()">
-                                    <i class="fa fa-arrow-left" style="font-size: 16px;"></i>
-                                </button>
-                                <input type="text" placeholder="Data Flow Name" class="form-control me-1" [(ngModel)]="etlName" #dataFlowName="ngModel" pattern="^[a-zA-Z0-9_]+$">
-                                <button *ngIf="!dataFlowId" type="button" class="btn btn-primary me-1 iconProperties" [disabled]="!etlName || dataFlowName.invalid" (click)="saveOrUpdateEtlDataFlow()">Save</button>
-                                <button *ngIf="dataFlowId" type="button" class="btn btn-primary me-1 iconProperties" [disabled]="!etlName || dataFlowName.invalid" (click)="saveOrUpdateEtlDataFlow()">update</button>
-                                <span [ngbTooltip]="!isRunEnable ? 'Drag and connect the target data object to nodes to enable' : null" container="body" class="d-inline-block me-1">
-                                    <button type="button" class="btn btn-primary iconProperties" style="height: 100%;" [disabled]="!isRunEnable" (click)="runDataFlow()">Run</button>
-                                </span>
-                            </div>
-                            <div class="container-vertical" style="max-height: 600px;">
-                                <div class="top-pane border" [ngbNavOutlet]="nav"></div>
-                                <div *ngIf="isNodeSelected" class="card mb-0 border customsql-result-preview-h resizable-bottom" [ngClass]="isCollapsed ? 'table-collapse':''" resizableTop>
+                </div>
+
+                <div class="card-body p-0" style="max-height: 523px;">
+                    <div class="d-lg-flex d-block" style="max-height: 523px;">
+                        <div class="p-0" [ngClass]="isOpen ? 'col-10' : 'col-11'">
+                            <div class="container-vertical" style="max-height: 509px;">
+                                <!-- <div class="top-pane border" [ngbNavOutlet]="nav"></div> -->
+                                 <div id="drawflow" class="top-pane glass-card rounded-0 border-0" #drawflow [ngClass]="isOpen ? 'drawflow-width-half' : 'drawflow-width-full'"
+                                                (drop)="onDrop($event)" (dragover)="onDragOver($event)">
+                                                <div class="bar-zoom">
+                                                    <i class="fas fa-search-minus" (click)="canvasZoomOut()"></i>
+                                                    <i class="fas fa-search" (click)="canvasZoomReset()"></i>
+                                                    <i class="fas fa-search-plus" (click)="canvasZoomIn()"></i>
+                                                </div>
+                                </div>
+                                <div *ngIf="isNodeSelected" class="card glass-card rounded-0 mb-0 customsql-result-preview-h resizable-bottom" [ngClass]="isCollapsed ? 'table-collapse':''" resizableTop>
                                     <div class="resize-handle"></div>
                                     <div class="card-body p-0 rounded-3 tab-menu-heading tab-menu-heading-boxed">
-                                        <div class="card-header  d-flex align-items-center justify-content-between tabs-menu-boxed border-bottom p-1 mb-1 mt-1">
-                                            <ul ngbNav #tableTypes="ngbNav" [(activeId)]="tableTypeTabId" class="nav panel-tabs fs-14 pb-1">
+                                        <div class="card-header d-flex align-items-center justify-content-between tabs-menu-boxed border-bottom p-1 mb-1 mt-1">
+                                            <ul ngbNav #tableTypes="ngbNav" [(activeId)]="tableTypeTabId" class="nav panel-tabs pb-1">
                                                 <li [ngbNavItem]="1"> 
-                                                    <a ngbNavLink class="p-3 TabShadow"> {{isCanvasSelected ? etlName : selectedNode?.data?.nodeData?.general?.name}} </a>
+                                                    <a ngbNavLink class="p-3 TabShadow fs-13 fw-semibold"> {{isCanvasSelected ? etlName : selectedNode?.data?.nodeData?.general?.name}} </a>
                                                     <ng-template ngbNavContent>
                                                         <div class="d-flex">
                                                             <div class="border-end node-table-left">
                                                                 <ul ngbNav #tableTabs="ngbNav" [(activeId)]="tableTabId" class="nav flex-column nav-pills" id="vertical-tab"
                                                                     role="tablist" aria-orientation="vertical">
                                                                     @if(!isCanvasSelected){
-                                                                    <li [ngbNavItem]="1" className="nav-link text-start" id="general-tab"><a
-                                                                            ngbNavLink>General</a>
+                                                                    <li [ngbNavItem]="1" className="nav-link text-start" id="general-tab">
+                                                                        <a ngbNavLink class="fs-13 fw-semibold">General</a>
                                                                         <ng-template ngbNavContent>
                                                                             <div class="tab-pane tab-content-height" id="years" role="tabpanel" aria-labelledby="years-tab" tabindex="0">
                                                                                 <div class="col-xl-12 col-lg-12 col-md-12 row g-0">
                                                                                     <div class="form-group w-100">
-                                                                                        <label for="name" class="fw-bold">Name </label>
+                                                                                        <label for="name" class="small fw-semibold">Name </label>
                                                                                         <div *ngIf="nameInput.invalid && nameInput.touched" class="text-danger small">
                                                                                             *Name can only contain letters, numbers, and underscores.
                                                                                         </div>
                                                                                         <div class="d-flex">
                                                                                             <div class="col-4 p-0">
                                                                                                 <input type="text" id="name" name="name" [(ngModel)]="nodeName"  pattern="^[a-zA-Z0-9_]+$"
-                                                                                                    class="form-control shadow-sm" #nameInput="ngModel" (blur)="updateNode('general', nameInput)" />
+                                                                                                    class="form-control form-control-sm shadow-sm" #nameInput="ngModel" (blur)="updateNode('general', nameInput)" />
                                                                                             </div>
                                                                                             <span class="bg-primary d-flex align-items-center justify-content-center right-chevron-width"
-                                                                                                (click)="updateNode('general', nameInput)"><i class="fa fa-chevron-right text-light fs-5"></i></span>
+                                                                                                (click)="updateNode('general', nameInput)"><i class="fa fa-chevron-right text-light small"></i></span>
                                                                                         </div>
                                                                                     </div>
                                                                                     <!-- <div class="form-group w-100">
@@ -80,7 +120,7 @@
                                                                         </ng-template>
                                                                     </li>
                                                                     <li *ngIf="!['Expression','source_data_object'].includes(selectedNode?.data?.type)"
-                                                                        [ngbNavItem]="2" className="nav-link text-start" id="properties-tab"><a ngbNavLink>Properties</a>
+                                                                        [ngbNavItem]="2" className="nav-link text-start" id="properties-tab"><a ngbNavLink class="fs-13 fw-semibold">Properties</a>
                                                                         <ng-template ngbNavContent>
                                                                             <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
                                                                                 <div class="col-xl-12 col-lg-12 col-md-12">
@@ -127,13 +167,13 @@
                                                                                                     <tr>
                                                                                                         <td>{{i+1}}</td>
                                                                                                         <td>
-                                                                                                            <select class="form-select form-select" [(ngModel)]="join.joinType"
+                                                                                                            <select class="form-select form-select-md" [(ngModel)]="join.joinType"
                                                                                                                 (change)="updateNode('properties')">
-                                                                                                                <option value="" selected disabled>Select Join Type</option>
-                                                                                                                <option value="inner join">INNER JOIN</option>
-                                                                                                                <option value="left outer join">LEFT OUTER JOIN</option>
-                                                                                                                <option value="full outer join">FULL OUTER JOIN</option>
-                                                                                                                <option value="right outer join">RIGHT OUTER JOIN</option>
+                                                                                                                <option class="select-options" value="" selected disabled>Select Join Type</option>
+                                                                                                                <option class="select-options" value="inner join">INNER JOIN</option>
+                                                                                                                <option class="select-options" value="left outer join">LEFT OUTER JOIN</option>
+                                                                                                                <option class="select-options" value="full outer join">FULL OUTER JOIN</option>
+                                                                                                                <option class="select-options" value="right outer join">RIGHT OUTER JOIN</option>
                                                                                                             </select>
                                                                                                         </td>
                                                                                                         <td>
@@ -144,7 +184,7 @@
                                                                                                         </td>
                                                                                                         <td>
                                                                                                             <div class="input-group input-group">
-                                                                                                                <input type="text" class="form-control" placeholder="join condition"
+                                                                                                                <input type="text" class="form-control form-control-md" placeholder="join condition"
                                                                                                                     [(ngModel)]="join.joinCondition" (blur)="updateNode('properties')" />
                                                                                                                 <span class="input-group-text bg-primary" ngbTooltip=""
                                                                                                                     (click)="openExpressionEdit(expressionEdit, join, i)">
@@ -191,8 +231,8 @@
                                                                                                     <td>Distinct Row</td>
                                                                                                     <td>
                                                                                                         <select name="" id="">
-                                                                                                            <option value="">No</option>
-                                                                                                            <option value="">Yes</option>
+                                                                                                            <option class="select-options" value="">No</option>
+                                                                                                            <option class="select-options" value="">Yes</option>
                                                                                                         </select>
                                                                                                     </td>
                                                                                                 </tr>
@@ -204,8 +244,8 @@
                                                                                                     <td>Enable Override Source Query</td>
                                                                                                     <td>
                                                                                                         <select name="" id="">
-                                                                                                            <option value="">No</option>
-                                                                                                            <option value="">Yes</option>
+                                                                                                            <option class="select-options" value="">No</option>
+                                                                                                            <option class="select-options" value="">Yes</option>
                                                                                                         </select>
                                                                                                     </td>
                                                                                                 </tr>
@@ -232,255 +272,169 @@
                                                                                                                                                                 <textarea id="postSQL" name="postSQL" rows="3"></textarea>
                                                                                                                                                             </div> -->
                                                                                     </div>
-                                                                                    <!-- Rank Transformation Properties -->
-                                                                                    <div *ngIf="selectedNode.data.type === 'Rank'">
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="rankType">Rank Type</label>
-                                                                                            <select class="form-select" [(ngModel)]="selectedNode.data.nodeData.properties.rankType" (change)="updateNode('properties')">
-                                                                                                <option value="RANK">RANK</option>
-                                                                                                <option value="DENSE_RANK">DENSE_RANK</option>
-                                                                                                <option value="ROW_NUMBER">ROW_NUMBER</option>
-                                                                                            </select>
+                                                                                    <div *ngIf="selectedNode.data.type === 'Rank'" class="col-6">
+                                                                                        <label class="label-font-weight" for="rankType"> Rank Type </label><br>
+                                                                                        <select class="form-select" name="rankType" id="rankType" [(ngModel)]="selectedNode.data.nodeData.properties.rank.rankType"
+                                                                                            (change)="updateNode('')">
+                                                                                            <option class="select-options" value="" selected disabled>Select Rank Type</option>
+                                                                                            <option class="select-options" value="RANK">Rank</option>
+                                                                                            <option class="select-options" value="DENSE_RANK">Dense Rank</option>
+                                                                                            <option class="select-options" value="Row_NUMBER">Row Number</option>
+                                                                                        </select><br>
+                                                                                        <label class="label-font-weight" for="rankColumn"> Rank Column Name </label><br>
+                                                                                        <input type="text" class="form-control" id="rankColumn" placeholder="Column Name" [(ngModel)]="selectedNode.data.nodeData.properties.rank.rankColumnName" (blur)="updateNode('')"><br>
+                                                                                        <label class="label-font-weight" for="records"> Records </label><br>
+                                                                                        <input type="number" min="0" step="1" class="form-control" id="records" placeholder="No of Records" [(ngModel)]="selectedNode.data.nodeData.properties.rank.records" (blur)="updateNode('')"><br>
+                                                                                        <label class="label-font-weight"> Order By Columns </label><br>
+                                                                                        <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true"
+                                                                                            (change)="updateNode('')" placeholder="Select a Column" [searchable]="true" appendTo="body"
+                                                                                            [(ngModel)]="selectedNode.data.nodeData.properties.rank.orderByCols" [dropdownPosition]="'bottom'">
+                                                                                        </ng-select><br>
+                                                                                        <label class="label-font-weight"> Partition By Columns </label><br>
+                                                                                        <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true"
+                                                                                            (change)="updateNode('')" placeholder="Select a Column" [searchable]="true" appendTo="body"
+                                                                                            [(ngModel)]="selectedNode.data.nodeData.properties.rank.partitionByCols" [dropdownPosition]="'bottom'">
+                                                                                        </ng-select><br>
+                                                                                        <label class="label-font-weight"> Sort </label><br>
+                                                                                        <input type="radio" name="sort" id="top" [(ngModel)]="selectedNode.data.nodeData.properties.rank.sortType" value="top" (change)="updateNode('')"> <label for="top"> Top </label><br>
+                                                                                        <input type="radio" name="sort" id="bottom" [(ngModel)]="selectedNode.data.nodeData.properties.rank.sortType" value="bottom" (change)="updateNode('')"> <label for="bottom"> Bottom </label>
+                                                                                    </div>
+                                                                                    <div *ngIf="selectedNode.data.type === 'Pivot'" class="col-6">
+                                                                                        <label class="label-font-weight"> Group By Columns </label><br>
+                                                                                        <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true"
+                                                                                            (change)="updateNode('')" placeholder="Select a Column" [searchable]="true" appendTo="body"
+                                                                                            [(ngModel)]="selectedNode.data.nodeData.properties.pivot.groupByCols" [dropdownPosition]="'bottom'">
+                                                                                        </ng-select><br>
+                                                                                        <label class="label-font-weight"> Value Columns </label><br>
+                                                                                        <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true"
+                                                                                            (change)="updateNode('')" placeholder="Select a Column" [searchable]="true" appendTo="body"
+                                                                                            [(ngModel)]="selectedNode.data.nodeData.properties.pivot.valueCols" [dropdownPosition]="'bottom'">
+                                                                                        </ng-select><br>
+                                                                                        <label class="label-font-weight"> Pivot Column </label><br>
+                                                                                        <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="false"
+                                                                                            (change)="updateNode('')" placeholder="Select a Column" [searchable]="true" appendTo="body"
+                                                                                            [(ngModel)]="selectedNode.data.nodeData.properties.pivot.pivotCol" [dropdownPosition]="'bottom'">
+                                                                                        </ng-select><br>
+                                                                                        <label class="label-font-weight" for="pivotValues"> Pivot Values <span class="small">(Enter values with "," separated)</span> </label><br>
+                                                                                        <input type="text" class="form-control" id="pivotValues" placeholder="values" [(ngModel)]="selectedNode.data.nodeData.properties.pivot.pivotValues" (blur)="updateNode('')"><br>
+                                                                                        <label class="label-font-weight"> Aggregation </label><br>
+                                                                                        <select class="form-select form-select-sm" [(ngModel)]="selectedNode.data.nodeData.properties.pivot.aggregation" (change)="updateNode('')">
+                                                                                            <option class="select-options" value="" selected disabled>select</option>
+                                                                                            <option class="select-options" value="sum">Sum</option>
+                                                                                            <option class="select-options" value="avg">Average</option>
+                                                                                            <option class="select-options" value="max">Max</option>
+                                                                                            <option class="select-options" value="min">Min</option>
+                                                                                            <option class="select-options" value="count">Count</option>
+                                                                                        </select>
+                                                                                    </div>
+                                                                                    <div *ngIf="selectedNode.data.type === 'Union'">
+                                                                                        <label class="label-font-weight"> Type </label><br>
+                                                                                        <select class="form-select form-select-sm" style="width: 50%;" [(ngModel)]="selectedNode.data.nodeData.properties.union.type" (change)="updateNode('')">
+                                                                                            <option class="select-options" value="UNION">Union</option>
+                                                                                            <option class="select-options" value="UNION ALL">Union All</option>
+                                                                                        </select><br>
+                                                                                        <div class="d-flex justify-content-end align-items-center gap-2 mb-3">
+                                                                                            <button class="btn btn-sm btn-primary d-flex align-items-center" ngbTooltip="Add" [triggers]="'hover'" (click)="addNewColumnMappings()">
+                                                                                                <i class="fa fa-plus me-1"></i> Add
+                                                                                            </button>
+                                                                                    
+                                                                                            <div class="input-group input-group-sm search-width-height">
+                                                                                                <input type="text" class="form-control" placeholder="Search" [(ngModel)]="groupSearchTerm" />
+                                                                                                <span class="input-group-text bg-primary" ngbTooltip="Search" [triggers]="'hover'">
+                                                                                                    <i class="fa fa-search text-light"></i>
+                                                                                                </span>
+                                                                                            </div>
                                                                                         </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="rankColName">Rank Column Name</label>
-                                                                                            <input type="text" class="form-control" [(ngModel)]="selectedNode.data.nodeData.properties.rankColName" (blur)="updateNode('properties')" />
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="records">Records</label>
-                                                                                            <input type="number" class="form-control" [(ngModel)]="selectedNode.data.nodeData.properties.records" (blur)="updateNode('properties')" />
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="sort">Sort</label>
-                                                                                            <select class="form-select" [(ngModel)]="selectedNode.data.nodeData.properties.sort" (change)="updateNode('properties')">
-                                                                                                <option value="top">Top</option>
-                                                                                                <option value="bottom">Bottom</option>
-                                                                                            </select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Order By Columns</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.orderByCols" (change)="updateNode('properties')" placeholder="Select columns to order by" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Partition By Columns</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.partitionByCols" (change)="updateNode('properties')" placeholder="Select columns to partition by" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
+                                                                                        <div class="table-responsive table-responsive-height">
+                                                                                            <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
+                                                                                                <thead class="Result-preview-table-sticky">
+                                                                                                    <tr>
+                                                                                                        <th>#</th>
+                                                                                                        <th>Alias Name</th>
+                                                                                                        @for(node of selectedNode.data.nodeData.properties.union.sourceNodes; let index = $index; track index){
+                                                                                                            <th>{{node.data.nodeData.general.name}}</th>
+                                                                                                        }
+                                                                                                        <th>Action</th>
+                                                                                                    </tr>
+                                                                                    
+                                                                                                </thead>
+                                                                                                <tbody>
+                                                                                                    @for(attribute of selectedNode.data.nodeData.properties.union.columnMappings | dataFlowSearchFilter:groupSearchTerm:'aliasName';
+                                                                                                     track attribute; let i = $index){
+                                                                                                    <tr (click)="selectedAttributeIndex = i"
+                                                                                                        [ngClass]="{ 'selected-row': selectedAttributeIndex === i }">
+                                                                                                        <td>{{ i + 1 }}</td>
+                                                                                                        <td>
+                                                                                                            <input type="text" class="form-control form-control" [(ngModel)]="attribute.aliasName"
+                                                                                                                (blur)="updateNode('')">
+                                                                                                        </td>
+                                                                                                        @for(node of selectedNode.data.nodeData.properties.union.sourceNodes; let index = $index; track index){
+                                                                                                        <td>
+                                                                                                            <ng-select [items]="node.data.nodeData.dataObject.columns" bindLabel="col"
+                                                                                                                (change)="updateNode('')" placeholder="Select a Column" [searchable]="true"
+                                                                                                                [(ngModel)]="attribute.columns[index]" [dropdownPosition]="'bottom'">
+                                                                                                            </ng-select>
+                                                                                                        </td>
+                                                                                                        }
+                                                                                                        <td class="d-flex align-items-center justify-content-center">
+                                                                                                            <button class="btn btn-outline-danger" ngbTooltip="Delete" [triggers]="'hover'"
+                                                                                                                (click)="deleteColumnMapping(i)">
+                                                                                                                <i class="fa fa-trash"></i>
+                                                                                                            </button>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                    }
+                                                                                                </tbody>
+                                                                                            </table>
                                                                                         </div>
                                                                                     </div>
-
-                                                                                    <!-- Router Transformation Properties -->
                                                                                     <div *ngIf="selectedNode.data.type === 'Router'">
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Default Route</label>
-                                                                                            <div class="form-check">
-                                                                                                <input class="form-check-input" type="checkbox" [(ngModel)]="selectedNode.data.nodeData.properties.hasDefault" (change)="updateNode('properties'); updateRouterOutputs()" id="hasDefault">
-                                                                                                <label class="form-check-label" for="hasDefault">
-                                                                                                    Enable default route for unmatched records
-                                                                                                </label>
+                                                                                        <div class="d-flex justify-content-end align-items-center gap-2 mb-3">
+                                                                                            <div [ngbTooltip]="selectedNode.data.nodeData.properties.router.conditions.length === 4 ? 'Maximum no of conditions reached!' : 'Add'" [triggers]="'hover'">
+                                                                                                <button class="btn btn-sm btn-primary d-flex align-items-center" (click)="addNewCondition()">
+                                                                                                    <i class="fa fa-plus me-1"></i> Add
+                                                                                                </button>
+                                                                                            </div>
+                                                                                    
+                                                                                            <div class="input-group input-group-sm search-width-height">
+                                                                                                <input type="text" class="form-control" placeholder="Search" [(ngModel)]="groupSearchTerm" />
+                                                                                                <span class="input-group-text bg-primary" ngbTooltip="Search" [triggers]="'hover'">
+                                                                                                    <i class="fa fa-search text-light"></i>
+                                                                                                </span>
                                                                                             </div>
                                                                                         </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Routing Conditions</label>
-                                                                                            <div class="table-responsive">
-                                                                                                <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
-                                                                                                    <thead>
-                                                                                                        <tr>
-                                                                                                            <th>#</th>
-                                                                                                            <th>Condition</th>
-                                                                                                            <th>Output Name</th>
-                                                                                                            <th>Output Table</th>
-                                                                                                            <th>Default</th>
-                                                                                                            <th>Action</th>
-                                                                                                        </tr>
-                                                                                                    </thead>
-                                                                                                    <tbody>
-                                                                                                        <tr *ngFor="let condition of (selectedNode.data.nodeData.properties.conditions || []); let i = index">
-                                                                                                            <td>{{i+1}}</td>
-                                                                                                            <td><textarea class="form-control" rows="2" [(ngModel)]="condition.condition" (blur)="updateNode('properties'); updateRouterOutputs()" placeholder="e.g., dept = 'IT' OR salary BETWEEN 50000 AND 100000"></textarea></td>
-                                                                                                            <td><input type="text" class="form-control" [(ngModel)]="condition.outputName" (blur)="updateNode('properties'); updateRouterOutputs()" placeholder="e.g., IT_Employees" /></td>
-                                                                                                            <td><input type="text" class="form-control" [(ngModel)]="condition.outputTable" (blur)="updateNode('properties')" placeholder="e.g., tbl_it_employees" /></td>
-                                                                                                            <td><input type="checkbox" class="form-check-input" [(ngModel)]="condition.isDefault" (change)="onDefaultChange(i)" /></td>
-                                                                                                            <td><button class="btn btn-sm btn-danger" (click)="removeCondition(i)"><i class="fa fa-trash"></i></button></td>
-                                                                                                        </tr>
-                                                                                                        <tr *ngIf="!selectedNode.data.nodeData.properties.conditions || selectedNode.data.nodeData.properties.conditions.length === 0">
-                                                                                                            <td colspan="6" class="text-center text-muted">No conditions added. Click "Add Condition" to start.</td>
-                                                                                                        </tr>
-                                                                                                    </tbody>
-                                                                                                </table>
-                                                                                            </div>
-                                                                                            <button class="btn btn-sm btn-primary mt-2" (click)="addCondition()">Add Condition</button>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <!-- Union Transformation Properties -->
-                                                                                    <div *ngIf="selectedNode.data.type === 'Union'">
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="unionType">Union Type</label>
-                                                                                            <select class="form-select" [(ngModel)]="selectedNode.data.nodeData.properties.unionType" (change)="updateNode('properties')">
-                                                                                                <option value="UNION ALL">UNION ALL</option>
-                                                                                                <option value="UNION">UNION</option>
-                                                                                            </select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Column Mappings</label>
-                                                                                            <div class="table-responsive">
-                                                                                                <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
-                                                                                                    <thead>
-                                                                                                        <tr>
-                                                                                                            <th>#</th>
-                                                                                                            <th>Output Column</th>
-                                                                                                            <th>Source Column</th>
-                                                                                                            <th>Action</th>
-                                                                                                        </tr>
-                                                                                                    </thead>
-                                                                                                    <tbody>
-                                                                                                        @for(mapping of selectedNode.data.nodeData.properties.columnMappings; track mapping; let i = $index){
-                                                                                                        <tr>
-                                                                                                            <td>{{i+1}}</td>
-                                                                                                            <td><input type="text" class="form-control" [(ngModel)]="mapping.outputColumn" (blur)="updateNode('properties')" /></td>
-                                                                                                            <td><input type="text" class="form-control" [(ngModel)]="mapping.sourceColumn" (blur)="updateNode('properties')" /></td>
-                                                                                                            <td><button class="btn btn-sm btn-danger" (click)="removeColumnMapping(i)"><i class="fa fa-trash"></i></button></td>
-                                                                                                        </tr>
-                                                                                                        }
-                                                                                                    </tbody>
-                                                                                                </table>
-                                                                                            </div>
-                                                                                            <button class="btn btn-sm btn-primary mt-2" (click)="addColumnMapping()">Add Column Mapping</button>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <!-- Normalizer Transformation Properties -->
-                                                                                    <div *ngIf="selectedNode.data.type === 'Normalizer'">
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="pivotCol">Pivot Column</label>
-                                                                                            <input type="text" class="form-control" [(ngModel)]="selectedNode.data.nodeData.properties.pivotCol" (blur)="updateNode('properties')" />
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Group By Columns</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.groupByCols" (change)="updateNode('properties')" placeholder="Select group by columns" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Value Columns</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.valueCols" (change)="updateNode('properties')" placeholder="Select value columns" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Output Columns</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.outputCols" (change)="updateNode('properties')" placeholder="Select output columns" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <!-- UpdateStrategy Transformation Properties -->
-                                                                                    <div *ngIf="selectedNode.data.type === 'UpdateStrategy'">
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="targetTable">Target Table</label>
-                                                                                            <input type="text" class="form-control" [(ngModel)]="selectedNode.data.nodeData.properties.targetTable" (blur)="updateNode('properties')" />
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="strategy">Update Strategy</label>
-                                                                                            <select class="form-select" [(ngModel)]="selectedNode.data.nodeData.properties.strategy" (change)="updateNode('properties')">
-                                                                                                <option value="UPDATE">UPDATE</option>
-                                                                                                <option value="UPSERT">UPSERT</option>
-                                                                                                <option value="DD_UPDATE">DD_UPDATE</option>
-                                                                                                <option value="INSERT">INSERT</option>
-                                                                                                <option value="DELETE">DELETE</option>
-                                                                                            </select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Join Keys</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.joinKey" (change)="updateNode('properties')" placeholder="Select join key columns" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Update Mappings</label>
-                                                                                            <div class="table-responsive">
-                                                                                                <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
-                                                                                                    <thead>
-                                                                                                        <tr>
-                                                                                                            <th>#</th>
-                                                                                                            <th>Target Column</th>
-                                                                                                            <th>Source Column</th>
-                                                                                                            <th>Update Type</th>
-                                                                                                            <th>Action</th>
-                                                                                                        </tr>
-                                                                                                    </thead>
-                                                                                                    <tbody>
-                                                                                                        @for(mapping of selectedNode.data.nodeData.properties.updateMappings; track mapping; let i = $index){
-                                                                                                        <tr>
-                                                                                                            <td>{{i+1}}</td>
-                                                                                                            <td><input type="text" class="form-control" [(ngModel)]="mapping.targetColumn" (blur)="updateNode('properties')" /></td>
-                                                                                                            <td><input type="text" class="form-control" [(ngModel)]="mapping.sourceColumn" (blur)="updateNode('properties')" /></td>
-                                                                                                            <td>
-                                                                                                                <select class="form-select" [(ngModel)]="mapping.updateType" (change)="updateNode('properties')">
-                                                                                                                    <option value="overwrite">Overwrite</option>
-                                                                                                                    <option value="add">Add</option>
-                                                                                                                    <option value="subtract">Subtract</option>
-                                                                                                                    <option value="min">Min</option>
-                                                                                                                    <option value="max">Max</option>
-                                                                                                                    <option value="concat">Concat</option>
-                                                                                                                </select>
-                                                                                                            </td>
-                                                                                                            <td><button class="btn btn-sm btn-danger" (click)="removeUpdateMapping(i)"><i class="fa fa-trash"></i></button></td>
-                                                                                                        </tr>
-                                                                                                        }
-                                                                                                    </tbody>
-                                                                                                </table>
-                                                                                            </div>
-                                                                                            <button class="btn btn-sm btn-primary mt-2" (click)="addUpdateMapping()">Add Update Mapping</button>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <!-- Normalizer Transformation Properties -->
-                                                                                    <div *ngIf="selectedNode.data.type === 'Normalizer'">
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="pivotCol">Pivot Column</label>
-                                                                                            <input type="text" class="form-control" [(ngModel)]="selectedNode.data.nodeData.properties.pivotCol" (blur)="updateNode('properties')" />
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Group By Columns</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.groupByCols" (change)="updateNode('properties')" placeholder="Select group by columns" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Value Columns</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.valueCols" (change)="updateNode('properties')" placeholder="Select value columns" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Output Columns</label>
-                                                                                            <ng-select [items]="selectedNode.data.nodeData.dataObject" bindLabel="label" groupBy="group" [multiple]="true" [(ngModel)]="selectedNode.data.nodeData.properties.outputCols" (change)="updateNode('properties')" placeholder="Select output columns" [searchable]="true" [dropdownPosition]="'bottom'"></ng-select>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <!-- Union Transformation Properties -->
-                                                                                    <div *ngIf="selectedNode.data.type === 'Union'">
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight" for="unionType">Union Type</label>
-                                                                                            <select class="form-select" [(ngModel)]="selectedNode.data.nodeData.properties.unionType" (change)="updateNode('properties')">
-                                                                                                <option value="UNION ALL">UNION ALL</option>
-                                                                                                <option value="UNION">UNION</option>
-                                                                                            </select>
-                                                                                        </div>
-                                                                                        <div class="mb-3">
-                                                                                            <label class="label-font-weight">Column Mappings</label>
-                                                                                            <div class="table-responsive">
-                                                                                                <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
-                                                                                                    <thead>
-                                                                                                        <tr>
-                                                                                                            <th>#</th>
-                                                                                                            <th>Output Column</th>
-                                                                                                            <th>Source Column</th>
-                                                                                                            <th>Action</th>
-                                                                                                        </tr>
-                                                                                                    </thead>
-                                                                                                    <tbody>
-                                                                                                        @for(mapping of selectedNode.data.nodeData.properties.columnMappings; track mapping; let i = $index){
-                                                                                                        <tr>
-                                                                                                            <td>{{i+1}}</td>
-                                                                                                            <td><input type="text" class="form-control" [(ngModel)]="mapping.outputColumn" (blur)="updateNode('properties')" /></td>
-                                                                                                            <td><input type="text" class="form-control" [(ngModel)]="mapping.sourceColumn" (blur)="updateNode('properties')" /></td>
-                                                                                                            <td><button class="btn btn-sm btn-danger" (click)="removeColumnMapping(i)"><i class="fa fa-trash"></i></button></td>
-                                                                                                        </tr>
-                                                                                                        }
-                                                                                                    </tbody>
-                                                                                                </table>
-                                                                                            </div>
-                                                                                            <button class="btn btn-sm btn-primary mt-2" (click)="addColumnMapping()">Add Column Mapping</button>
+                                                                                        <div class="table-responsive table-responsive-height">
+                                                                                            <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
+                                                                                                <thead class="Result-preview-table-sticky">
+                                                                                                    <tr>
+                                                                                                        <th>#</th>
+                                                                                                        <th>Condition Name</th>
+                                                                                                        <th>Condition</th>
+                                                                                                        <th>Action</th>
+                                                                                                    </tr>
+                                                                                    
+                                                                                                </thead>
+                                                                                                <tbody>
+                                                                                                    @for(condition of selectedNode.data.nodeData.properties.router.conditions | dataFlowSearchFilter:groupSearchTerm:'aliasName';
+                                                                                                     track condition; let i = $index){
+                                                                                                    <tr *ngIf="condition.isVisible">
+                                                                                                        <td>{{ i + 1 }}</td>
+                                                                                                        <td>
+                                                                                                            <input type="text" class="form-control" [(ngModel)]="condition.conditionName" (blur)="updateNode('', '', i+1, condition.conditionName)">
+                                                                                                        </td>
+                                                                                                        <td>
+                                                                                                            <input type="text" class="form-control" [(ngModel)]="condition.condition" placeholder="enter conditios.." (blur)="updateNode('')" />
+                                                                                                        </td>
+                                                                                                        <td class="d-flex align-items-center justify-content-center">
+                                                                                                            <button class="btn btn-outline-danger" ngbTooltip="Delete" [triggers]="'hover'"
+                                                                                                                (click)="deleteCondition(i)">
+                                                                                                                <i class="fa fa-trash"></i>
+                                                                                                            </button>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                    }
+                                                                                                </tbody>
+                                                                                            </table>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -488,7 +442,7 @@
                                                                         </ng-template>
                                                                     </li>
                                                                     <li *ngIf="selectedNode?.data?.type === 'Rollup'" [ngbNavItem]="3" className="nav-link text-start"
-                                                                        id="group-attributes-tab"><a ngbNavLink>Group Attributes</a>
+                                                                        id="group-attributes-tab"><a ngbNavLink class="fs-13 fw-semibold">Group Attributes</a>
                                                                         <ng-template ngbNavContent>
                                                                             <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
                                                                                 <div class="col-xl-12 col-lg-12 col-md-12">
@@ -558,7 +512,7 @@
                                                                         </ng-template>
                                                                     </li>
                                                                     <li *ngIf="selectedNode?.data?.type === 'source_data_object'" [ngbNavItem]="4" className="nav-link text-start"
-                                                                        id="source-attributes-tab"><a ngbNavLink>Source Attributes</a>
+                                                                        id="source-attributes-tab"><a ngbNavLink class="fs-13 fw-semibold">Source Attributes</a>
                                                                         <ng-template ngbNavContent>
                                                                             <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
                                                                                 <div class="col-xl-12 col-lg-12 col-md-12">
@@ -609,7 +563,7 @@
                                                                                                         <select class="form-select form-select" [(ngModel)]="sourceAttribute.dataType"
                                                                                                             (change)="updateNode('')">
                                                                                                             <option value="" selected disabled>Select</option>
-                                                                                                            <option *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
+                                                                                                            <option class="select-options" *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
                                                                                                         </select>
                                                                                                     </td>
                                                                                                     <td>
@@ -635,8 +589,8 @@
                                                                             </div>
                                                                         </ng-template>
                                                                     </li>
-                                                                    <li *ngIf="!['Filter', 'target_data_object'].includes(selectedNode?.data?.type)" [ngbNavItem]="5"
-                                                                        className="nav-link text-start" id="attributes-tab"><a ngbNavLink>Attributes</a>
+                                                                    <li *ngIf="!['Filter', 'target_data_object', 'Rank', 'Pivot', 'Union', 'Router'].includes(selectedNode?.data?.type)" [ngbNavItem]="5"
+                                                                        className="nav-link text-start" id="attributes-tab"><a ngbNavLink class="fs-13 fw-semibold">Attributes</a>
                                                                         <ng-template ngbNavContent>
                                                                             <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
                                                                                 <div class="col-xl-12 col-lg-12 col-md-12">
@@ -730,7 +684,7 @@
                                                                                                         <select class="form-select form-select" [(ngModel)]="attribute.dataType"
                                                                                                             (change)="updateNode('attribute')">
                                                                                                             <option value="" selected disabled>Select</option>
-                                                                                                            <option *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
+                                                                                                            <option class="select-options" *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
                                                                                                         </select>
                                                                                                     </td>
                                                                                                     <td>
@@ -756,7 +710,7 @@
                                                                                     </div>
                                                                                     } @else{
                                                                                     <div class="d-flex">
-                                                                                        <span>No Attribute exists, to add </span> &nbsp;
+                                                                                        <span class="small fw-semibold">No Attribute exists, to add </span> &nbsp;
                                                                                         <button class="btn btn-sm btn-primary d-flex align-items-center" ngbTooltip="Add Attribute"
                                                                                             [triggers]="'hover'" (click)="addNewAttribute()">
                                                                                             <i class="fa fa-plus me-2"></i> Click Here
@@ -775,14 +729,14 @@
                                                                         </ng-template>
                                                                     </li>
                                                                     <li *ngIf="selectedNode?.data?.type === 'target_data_object' && !selectedNode?.data?.nodeData?.properties?.create"
-                                                                        [ngbNavItem]="6" className="nav-link text-start" id="attribute-mapper-tab"><a ngbNavLink>Attribute Mapper</a>
+                                                                        [ngbNavItem]="6" className="nav-link text-start" id="attribute-mapper-tab"><a ngbNavLink class="fs-13 fw-semibold">Attribute Mapper</a>
                                                                         <ng-template ngbNavContent>
                                                                             <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
                                                                                 <div class="col-xl-12 col-lg-12 col-md-12">
                                                                                     <div class="d-flex align-items-center gap-2 mb-3">
                                                                                         <label for="loadType" class="me-2">Load Type: </label>
                                                                                         <select name="loadType" id="loadType" class="form-select select-width">
-                                                                                            <option value="insert">Insert</option>
+                                                                                            <option class="select-options" value="insert">Insert</option>
                                                                                             <!-- <option value="">Update</option>
                                                                                                                                                                 <option value="">Upsert</option>
                                                                                                                                                                 <option value="">Delete</option>
@@ -792,27 +746,6 @@
                                                                                                                                                             <img src="./assets/images/etl/unlinkall-etl.svg" alt="unlinkAll" ngbTooltip="unlinkAll" class="drawflow-image me-2"> -->
                                                                                         <img src="./assets/images/etl/automap-etl.svg" alt="automap" ngbTooltip="automap"
                                                                                             class="drawflow-image" (click)="setAttributeAutoMapper()">
-                                                                                    </div>
-                                                                                    <!-- AI Mapping Assistant -->
-                                                                                    <div class="mt-3 mb-3">
-                                                                                        <label class="label-font-weight" for="aiInstruction">Describe mapping (AI-powered)</label>
-                                                                                        <textarea id="aiInstruction" class="form-control" rows="2" placeholder="e.g., map cust_id to customer_id; full_name as concat(first_name,' ',last_name); cast amount to double as total_amount" [(ngModel)]="aiInstruction"></textarea>
-                                                                                        <div class="d-flex align-items-center mt-2">
-                                                                                            <div class="me-3">
-                                                                                                <label class="form-label me-2">AI Provider:</label>
-                                                                                                <select class="form-select form-select-sm d-inline-block" style="width: auto;" [(ngModel)]="aiProvider">
-                                                                                                    <option value="heuristic">Heuristic (No AI)</option>
-                                                                                                    <option value="google">Google AI</option>
-                                                                                                    <option value="ollama">Local AI (Ollama)</option>
-                                                                                                    <option value="perplexity">Perplexity AI</option>
-                                                                                                </select>
-                                                                                            </div>
-                                                                                            <button class="btn btn-sm btn-primary" [disabled]="generatingMapping" (click)="generateMappingFromInstruction()">
-                                                                                                <span *ngIf="!generatingMapping">Generate</span>
-                                                                                                <span *ngIf="generatingMapping">Generating...</span>
-                                                                                            </button>
-                                                                                        </div>
-                                                                                        <small class="text-muted">This will fill the mapping table below. You can edit before saving.</small>
                                                                                     </div>
                                                                                     <div class="mt-3 table-responsive table-responsive-height">
                                                                                         <table class="table border text-nowrap text-md-nowrap table-striped table-bordered mb-0">
@@ -848,7 +781,7 @@
                                                                         </ng-template>
                                                                     </li>
                                                                     } @else{
-                                                                    <li [ngbNavItem]="7" className="nav-link text-start" id="parameter-tab"><a ngbNavLink>Parameters</a>
+                                                                    <li [ngbNavItem]="7" className="nav-link text-start" id="parameter-tab"><a ngbNavLink class="fs-13 fw-semibold">Parameters</a>
                                                                         <ng-template ngbNavContent>
                                                                             <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
                                                                                 <div class="col-xl-12 col-lg-12 col-md-12">
@@ -887,7 +820,7 @@
                                                                                                         <select class="form-select" [(ngModel)]="parameter.dataType"
                                                                                                             (change)="updateNode('parameter')">
                                                                                                             <option value="" selected disabled>Select</option>
-                                                                                                            <option *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
+                                                                                                            <option class="select-options" *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
                                                                                                         </select>
                                                                                                     </td>
                                                                                                     <td>
@@ -913,7 +846,7 @@
                                                                                     </div>
                                                                                     } @else{
                                                                                     <div class="d-flex">
-                                                                                        <span>No Parameter exists, to add </span> &nbsp;
+                                                                                        <span class="small fw-semibold">No Parameter exists, to add </span> &nbsp;
                                                                                         <button class="btn btn-sm btn-primary d-flex align-items-center" ngbTooltip="Add Attribute"
                                                                                             [triggers]="'hover'" (click)="addNewParameter()">
                                                                                             <i class="fa fa-plus me-2"></i> Click Here
@@ -925,7 +858,7 @@
                                                                         </ng-template>
                                                                     </li>
                                                                     <li [ngbNavItem]="8" className="nav-link text-start" id="SQL-Parametere-tab"><a
-                                                                            ngbNavLink>SQL Parameters</a>
+                                                                            ngbNavLink class="fs-13 fw-semibold">SQL Parameters</a>
                                                                         <ng-template ngbNavContent>
                                                                             <div class="tab-pane " id="quarters" role="tabpanel" aria-labelledby="quarters-tab" tabindex="0">
                                                                                 <div class="col-xl-12 col-lg-12 col-md-12">
@@ -969,7 +902,7 @@
                                                                                                         <select class="form-select" [(ngModel)]="parameter.dataType"
                                                                                                             (change)="updateNode('parameter')">
                                                                                                             <option value="" selected disabled>Select</option>
-                                                                                                            <option *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
+                                                                                                            <option class="select-options" *ngFor="let type of dataTypes" [value]="type">{{ type }}</option>
                                                                                                         </select>
                                                                                                     </td>
                                                                                                     <td>
@@ -989,9 +922,9 @@
                                                                                                     </td>
                                                                                                     <td>
                                                                                                         <select class="form-select" [(ngModel)]="parameter.jobOrder" (change)="parameter.jobOrder === 'intialization' ? parameter.dependentJobName = 'intialization' : null" [disabled]="parameter.dependentJobName === 'intialization'">
-                                                                                                            <option value="intialization">Initialization</option>
-                                                                                                            <option value="before">BEFORE</option>
-                                                                                                            <option value="after">AFTER</option>
+                                                                                                            <option class="select-options" value="intialization">Initialization</option>
+                                                                                                            <option class="select-options" value="before">BEFORE</option>
+                                                                                                            <option class="select-options" value="after">AFTER</option>
                                                                                                         </select>
                                                                                                     </td>
                                                                                                     <td>
@@ -1019,7 +952,7 @@
                                                                                     </div>
                                                                                     } @else{
                                                                                     <div class="d-flex">
-                                                                                        <span>No SQL Parameter exists, to add </span> &nbsp;
+                                                                                        <span class="small fw-semibold">No SQL Parameter exists, to add </span> &nbsp;
                                                                                         <button class="btn btn-sm btn-primary d-flex align-items-center" ngbTooltip="Add SQL Parameter"
                                                                                             [triggers]="'hover'" (click)="addNewSQLParameter()">
                                                                                             <i class="fa fa-plus me-2"></i> Click Here
@@ -1054,14 +987,9 @@
                                                 </li>
                                             </ul>
                                             <div type="button" class="btn btn-primary" (click)="toggleCollapse()">
-                                                <i *ngIf="isCollapsed" class="fa fa-angle-up fs-18"></i>
-                                                <i *ngIf="!isCollapsed" class="fa fa-angle-down fs-18"></i>
+                                                <i *ngIf="isCollapsed" class="fa fa-angle-up small"></i>
+                                                <i *ngIf="!isCollapsed" class="fa fa-angle-down small"></i>
                                             </div>
-                                            <!-- <div class="d-flex justify-content-end align-items-center me-1">
-                                                <button class="btn btn-sm btn-primary" (click)="toggleCollapse()">
-                                                    <i class="mdi" [ngClass]="isCollapsed ? 'mdi-chevron-down' : 'mdi-chevron-up'"></i>
-                                                </button>
-                                            </div> -->
                                         </div>
                                         <div class="d-flex p-1">
                                             <div class="tab-content tab-content-width" id="vertical-tabContent">
@@ -1071,166 +999,110 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-2 p-1 border-end mt-1" [ngStyle]="{ 'display': isOpen ? 'block' : 'none' }">
-                            <div class="card mb-0 connections-layer-h">
-                                <ul ngbNav #nav="ngbNav" [(activeId)]="active" class="nav flex-column nav-pills" id="vertical-tab"
-                                    role="tablist" aria-orientation="vertical">
-                                    <li [ngbNavItem]="1">
-                                        <div ngbAccordion [closeOthers]="true" class="accordion border-0 mb-2" id="accordionExample1">
-                                            <div ngbAccordionItem [collapsed]="false" class="accordion-item">
-                                                <h2 ngbAccordionHeader class="accordion-header" id="headingOne">
-                                                    <button ngbAccordionButton class="accordion-button py-3 px-3" type="button"
-                                                        data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true"
-                                                        aria-controls="collapseOne">
-                                                        <i class="fa fa-plug ms-2 plug-icon"></i>Sources
-                                                    </button>
-                                                </h2>
-                                                <div ngbAccordionCollapse id="collapseOne" class="accordion-collapse collapse show"
-                                                    aria-labelledby="headingOne" data-bs-parent="#accordionExample1">
-                                                    <div class="accordion-body p-0" ngbAccordionBody>
-                                                        <ng-template>
-                                                            <div class="data-cdk-tables p-0">
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'source_data_object', connectionList, 1)"
-                                                                    data-node="Source Data Object">
-                                                                    <img src="./assets/images/etl/PostgreSQL-etl.svg" alt="postgres"
-                                                                        class="drawflow-image"><span> Source Data Object</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'source_data_object', connectionList, 2)"
-                                                                    data-node="Source Data Object">
-                                                                    <img src="./assets/images/etl/File-etl.svg" alt="file"
-                                                                        class="drawflow-image"><span> File</span>
-                                                                </div>
-                                                            </div>
-                                                        </ng-template>
+                        </div>  
+                        <div class="p-0" [ngClass]="isOpen ? 'col-2' : 'col-1'">
+                            <div class="card glass-card rounded-0 h-100 position-relative" style="border-left: 1px solid var(--default-border) !important; box-shadow: none;">
+                                <!-- Collapse Button -->
+                                <button class="btn btn-sm toggle-btn"
+                                    (click)="isOpen = !isOpen;">
+                                    <i class="text-primary fa-solid" [ngClass]="isOpen ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+                                </button>
+                                <!-- <button *ngIf="selectedNode" (click)="removeNode(selectedNode.id+'')" class="btn btn-danger">
+                                    Remove Node
+                                </button> -->
+                                <span *ngIf="isRefrshEnable" class="text-danger p-1" style="font-size: 9px;">*Component dragging is disabled since the flowboard is running.</span>
+
+                                <span *ngIf="!isOpen" class="vertical-text fw-bold">
+                                    COMPONENTS
+                                </span>
+
+                                <ng-container *ngIf="isOpen">
+                                    <div class="card-header bg-transparent border-0 py-2 d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold text-dark small">Components</span>
+                                
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-primary" [ngClass]="viewMode === 'list' ? 'active' : ''"
+                                                (click)="viewMode = 'list'">
+                                                <i class="fa fa-list"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary" [ngClass]="viewMode === 'grid' ? 'active' : ''"
+                                                (click)="viewMode = 'grid'">
+                                                <i class="fa fa-th"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                
+                                    <!-- Custom Tabs (Compact for col-2) -->
+                                    <div class="custom-tabs d-flex mb-2">
+                                        <div class="nav-item">
+                                            <button class="rounded-5 nav-link fw-semibold"
+                                                [ngClass]="activeTab === 'sources' ? 'tab-active tab-sources' : 'tab-inactive'"
+                                                (click)="activeTab = 'sources'">
+                                                Sources
+                                            </button>
+                                        </div>
+
+                                        <div class="nav-item">
+                                            <button class="rounded-5 nav-link fw-semibold"
+                                                [ngClass]="activeTab === 'transforms' ? 'tab-active tab-transforms' : 'tab-inactive'"
+                                                (click)="activeTab = 'transforms'">
+                                                Transforms
+                                            </button>
+                                        </div>
+                                
+                                        <div class="nav-item">
+                                            <button class="rounded-5 nav-link fw-semibold"
+                                                [ngClass]="activeTab === 'targets' ? 'tab-active tab-targets' : 'tab-inactive'"
+                                                (click)="activeTab = 'targets'">
+                                                Targets
+                                            </button>
+                                        </div>
+                                    </div>
+                                
+                                    <!-- Content with scroll -->
+                                    <div class="px-2 content-area pt-2">
+                                        <div class="scroll-content">
+                                            <!-- LIST VIEW -->
+                                            <div *ngIf="viewMode === 'list'">
+                                                <div *ngFor="let item of componentsContent[activeTab]"
+                                                    class="component-card d-flex align-items-center p-2 mb-2 rounded-4 shadow-sm" [draggable]="!isRefrshEnable"
+                                                    (dragstart)="onDragStart($event, item.type, ['source_data_object', 'target_data_object'].includes(item.type) ? connectionList : null, item?.id ?? '')">
+                                                    <div class="icon-wrap me-2">
+                                                        <i class="fa-solid" [ngClass]="[
+                                                              item.icon,    
+                                                              activeTab === 'sources' ? 'src-icons' : 
+                                                              activeTab === 'transforms' ? 'transform-icons' : 
+                                                              activeTab === 'targets' ? 'tgt-icons' : ''
+                                                           ]"></i>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-0 fw-semibold text-dark" style="font-size: 7px;">{{ item.name }}</h6>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                
+                                            <!-- GRID VIEW -->
+                                            <div *ngIf="viewMode === 'grid'" class="row g-2">
+                                                <div *ngFor="let item of componentsContent[activeTab]" class="col-6">
+                                                    <div class="component-card text-center p-3 rounded-4 shadow-sm" [draggable]="!isRefrshEnable"
+                                                        (dragstart)="onDragStart($event, item.type, ['source_data_object', 'target_data_object'].includes(item.type) ? connectionList : null, item?.id ?? '')">
+                                                        <i class="mb-2 fa-solid" [ngClass]="[
+                                                              item.icon,    
+                                                              activeTab === 'sources' ? 'src-icons' : 
+                                                              activeTab === 'transforms' ? 'transform-icons' : 
+                                                              activeTab === 'targets' ? 'tgt-icons' : ''
+                                                           ]"></i>
+                                                        <h6 class="mb-0 fw-semibold text-dark" style="font-size: 7px;">{{ item.name }}</h6>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div ngbAccordion [closeOthers]="true" class="accordion border-0 mb-2" id="accordionExample2">
-                                            <div ngbAccordionItem [collapsed]="true" class="accordion-item">
-                                                <h2 ngbAccordionHeader class="accordion-header" id="headingTwo">
-                                                    <button ngbAccordionButton class="accordion-button py-3 px-3" type="button"
-                                                        data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true"
-                                                        aria-controls="collapseTwo">
-                                                        <i class="fa fa-plug ms-2 plug-icon"></i>Targets
-                                                    </button>
-                                                </h2>
-                                                <div ngbAccordionCollapse id="collapseTwo" class="accordion-collapse collapse show"
-                                                    aria-labelledby="headingTwo" data-bs-parent="#accordionExample2">
-                                                    <div class="accordion-body p-0" ngbAccordionBody>
-                                                        <ng-template>
-                                                            <div class="data-cdk-tables p-0">
-                                                                <div class="drag-drawflow border-bottom" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'target_data_object', connectionList, 1)"
-                                                                    data-node="Target Data Object">
-                                                                    <img src="./assets/images/etl/PostgreSQL-etl.svg" alt="postgres"
-                                                                        class="drawflow-image"><span> PostgresSQL</span>
-                                                                </div>
-                                                                <!-- <div class="drag-drawflow border-bottom" draggable="true" (dragstart)="onDragStart($event, 'target_data_object', connectionList, 'file')" data-node="Target Data Object">
-                                                                                            <img src="./assets/images/etl/File-etl.svg" alt="file" class="drawflow-image"><span> File</span>
-                                                                                        </div> -->
-                                                            </div>
-                                                        </ng-template>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div ngbAccordion [closeOthers]="true" class="accordion border-0" id="accordionExample3">
-                                            <div ngbAccordionItem [collapsed]="true" class="accordion-item">
-                                                <h2 ngbAccordionHeader class="accordion-header" id="headingThree">
-                                                    <button ngbAccordionButton class="accordion-button py-3 px-3" type="button"
-                                                        data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="true"
-                                                        aria-controls="collapseThree">
-                                                        <i class="fa fa-gears me-2"></i>Transformations
-                                                    </button>
-                                                </h2>
-                                                <div ngbAccordionCollapse id="collapseThree" class="accordion-collapse collapse show"
-                                                    aria-labelledby="headingThree" data-bs-parent="#accordionExample3">
-                                                    <div class="accordion-body p-0" ngbAccordionBody>
-                                                        <ng-template>
-                                                            <div class="data-cdk-tables px-3 mt-2">
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'Expression', null, '')"
-                                                                    data-node="Expression">
-                                                                    <img src="./assets/images/etl/expression-etl.svg" alt="Expression"
-                                                                        class="drawflow-image"><span> Expression</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'Joiner', null, '')" data-node="Joiner">
-                                                                    <img src="./assets/images/etl/mjoiner-etl.svg" alt="Joiner"
-                                                                        class="drawflow-image"><span> Joiner</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'Rollup', null, '')" data-node="Rollup">
-                                                                    <img src="./assets/images/etl/rollup-etl.svg" alt="Rollup"
-                                                                        class="drawflow-image"><span> Rollup</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'Filter', null, '')" data-node="Filter">
-                                                                    <img src="./assets/images/etl/filter-etl.svg" alt="Filter"
-                                                                        class="drawflow-image"><span> Filter</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'Rank', null, '')" data-node="Rank">
-                                                                    <img src="./assets/images/etl/rank-etl.svg" alt="Rank"
-                                                                        class="drawflow-image"><span> Rank</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'Router', null, '')" data-node="Router">
-                                                                    <img src="./assets/images/etl/router-etl.svg" alt="Router"
-                                                                        class="drawflow-image"><span> Router</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'Union', null, '')" data-node="Union">
-                                                                    <img src="./assets/images/etl/union-etl.svg" alt="Union"
-                                                                        class="drawflow-image"><span> Union</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'Normalizer', null, '')" data-node="Normalizer">
-                                                                    <img src="./assets/images/etl/normalizer-etl.svg" alt="Normalizer"
-                                                                        class="drawflow-image"><span> Normalizer</span>
-                                                                </div>
-                                                                <div class="drag-drawflow" draggable="true"
-                                                                    (dragstart)="onDragStart($event, 'UpdateStrategy', null, '')" data-node="UpdateStrategy">
-                                                                    <img src="./assets/images/etl/update-strategy-etl.svg" alt="UpdateStrategy"
-                                                                        class="drawflow-image"><span> Update Strategy</span>
-                                                                </div>
-                                                            </div>
-                                                        </ng-template>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ng-template ngbNavContent>
-                                            <div id="drawflow" #drawflow [ngClass]="isOpen ? 'drawflow-width-half' : 'drawflow-width-full'"
-                                                (drop)="onDrop($event)" (dragover)="onDragOver($event)">
-                                                <div class="bar-zoom">
-                                                    <i class="fas fa-search-minus" (click)="canvasZoomOut()"></i>
-                                                    <i class="fas fa-search" (click)="canvasZoomReset()"></i>
-                                                    <i class="fas fa-search-plus" (click)="canvasZoomIn()"></i>
-                                                </div>
-                                            </div>
-                                        </ng-template>
-                                    </li>
-                                    <!-- <li [ngbNavItem]="2">
-                                                                <a ngbNavLink class="p-3 TabShadow">Job Flow</a>
-                                                                <ng-template ngbNavContent>
-                                                                    <div id="drawflow" #drawflow [ngClass]="isOpen ? 'drawflow-width-half' : 'drawflow-width-full'" (drop)="onDrop($event)" (dragover)="onDragOver($event)">
-                                                                    </div>
-                                                                </ng-template>
-                                                            </li> -->
-                                </ul>
+                                    </div>
+                                </ng-container>
                             </div>
-                        
                         </div>
                     </div> 
                 </div>
-                <!-- <div class="card-footer p-3">
-                    
-                </div> -->
             </div>
         </div>
     </div>
@@ -1238,82 +1110,88 @@
 
 <ng-template #connectionList let-modal>
     <div class="modal-header">
-        <h6 class="modal-title">Data Objects</h6>
-        <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click'); objectType = 'select'; selectedConnection = null; selectedDataObject = null; fileSelectType = 'dataSource'; sourcePath = ''; selectedFile = ''">
+        <h6 class="modal-title small">Data Objects</h6>
+        <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="modal.dismiss('Cross click'); objectType = 'select'; selectedConnection = null; selectedDataObject = null; fileSelectType = 'dataSource'; sourcePath = ''; selectedFile = ''">
         </button>
     </div>
     <div class="modal-body">
         <div class="panel panel-primary">
             <div class="tables-modal">
-                <div *ngIf="type === 2" class="d-flex gap-3 align-items-center mb-2">
-                    <label class="form-check-label">From : </label>
-                    <div class="form-check">
+                <div *ngIf="type === 2" class="d-flex gap-3 align-items-center small mb-2">
+                    <label class="form-check-label fw-semibold">From : </label>
+                    <div>
                       <input class="form-check-input" type="radio" name="fileSelect" id="dataSource" [value]="'dataSource'" [(ngModel)]="fileSelectType" (click)="objectType = 'select'; selectedConnection = null; selectedDataObject = null; fileSelectType = 'dataSource'; sourcePath = ''; selectedFile = ''">
                       <label class="form-check-label" for="dataSource">Data Source</label>
                     </div>
-                    <div class="form-check">
+                    <div>
                       <input class="form-check-input" type="radio" name="fileSelect" id="server" [value]="'server'" [(ngModel)]="fileSelectType" (click)="objectType = 'select'; selectedConnection = null; selectedDataObject = null; fileSelectType = 'server'; sourcePath = ''; selectedFile = ''">
                       <label class="form-check-label" for="server">Server</label>
                     </div>
                 </div>
                 <ng-container *ngIf="type !== 2">
-                    <label for="connection">Select connection <span class="text-danger">*</span></label>
-                    <ng-select [items]="connectionOptions" bindLabel="display_name" placeholder="Select a connection"
-                        [searchable]="true" [(ngModel)]="selectedConnection" (change)="getDataObjects()" name="connection"
-                        id="connection">
-                    </ng-select><br>
-                    <div *ngIf="nodeToAdd === 'target_data_object'" class="d-flex gap-3 align-items-center mb-2">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="objectType" id="selectObject" [(ngModel)]="objectType"
-                                [value]="'select'" (click)="selectedDataObject = null">
-                            <label class="form-check-label" for="selectObject">Select Object</label>
+                    <div class="small">
+                        <label for="connection" class="fw-semibold">Select connection <span class="text-danger">*</span></label>
+                        <ng-select [items]="connectionOptions" bindLabel="display_name" placeholder="Select a connection"
+                            [searchable]="true" [(ngModel)]="selectedConnection" (change)="getDataObjects()" name="connection"
+                            id="connection">
+                        </ng-select><br>
+                        <div *ngIf="nodeToAdd === 'target_data_object'" class="d-flex gap-3 align-items-center mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="objectType" id="selectObject" [(ngModel)]="objectType"
+                                    [value]="'select'" (click)="selectedDataObject = null">
+                                <label class="form-check-label" for="selectObject">Select Object</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="objectType" id="createObject" [(ngModel)]="objectType"
+                                    [value]="'create'" (click)="selectedDataObject = null">
+                                <label class="form-check-label" for="createObject">Create Object</label>
+                            </div>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="objectType" id="createObject" [(ngModel)]="objectType"
-                                [value]="'create'" (click)="selectedDataObject = null">
-                            <label class="form-check-label" for="createObject">Create Object</label>
+                        <div *ngIf="objectType === 'select'">
+                            <label for="dataObject" class="fw-semibold mt-1">Select Data Object <span class="text-danger">*</span></label>
+                            <ng-select [items]="dataObjectOptions" bindLabel="tables" placeholder="Select a Data Object" [searchable]="true"
+                                [(ngModel)]="selectedDataObject" name="dataObject" id="dataObject" [disabled]="!selectedConnection">
+                            </ng-select>
                         </div>
-                    </div>
-                    <div *ngIf="objectType === 'select'">
-                        <label for="dataObject" class="mt-1">Select Data Object <span class="text-danger">*</span></label>
-                        <ng-select [items]="dataObjectOptions" bindLabel="tables" placeholder="Select a Data Object" [searchable]="true"
-                            [(ngModel)]="selectedDataObject" name="dataObject" id="dataObject" [disabled]="!selectedConnection">
-                        </ng-select>
-                    </div>
-                    <div *ngIf="objectType === 'create'">
-                        <label for="newObjectName" class="form-label mt-2">New Object Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="newObjectName" [(ngModel)]="selectedDataObject" name="newObjectName"
-                            [disabled]="!selectedConnection" placeholder="Data Object Name">
+                        <div *ngIf="objectType === 'create'">
+                            <label for="newObjectName" class="form-label fw-semibold mt-2">New Object Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="newObjectName" [(ngModel)]="selectedDataObject" name="newObjectName"
+                                [disabled]="!selectedConnection" placeholder="Data Object Name">
+                        </div>
                     </div>
                 </ng-container>
                 <ng-container *ngIf="type === 2 && fileSelectType === 'server'">
-                    <label for="connection">Select Path <span class="text-danger">*</span></label><br>
-                    <select class="form-select" [(ngModel)]="sourcePath" (change)="getFilesforServer()">
-                        <option value="" selected disabled>Select Path</option>
-                        <option value="Source_folder">Source</option>
-                        <option value="archive">Archive</option>
-                        <option value="target">Target</option>
-                    </select><br>
-
-                    <label for="connection">Select File <span class="text-danger">*</span></label><br>
-                    <select class="form-select" [(ngModel)]="selectedFile" (change)="getDataObjectsFromServer()">
-                        <option value="" selected disabled>Select a File</option>
-                        <option *ngFor="let file of Folders; track file;" [value]="file">{{file}}</option>
-                    </select>
+                    <div class="small">
+                        <label for="connection" class="fw-semibold">Select Path <span class="text-danger">*</span></label><br>
+                        <select class="form-select" [(ngModel)]="sourcePath" (change)="getFilesforServer()">
+                            <option value="" selected disabled>Select Path</option>
+                            <option class="select-options" value="Source_folder">Source</option>
+                            <option class="select-options" value="archive">Archive</option>
+                            <option class="select-options" value="target">Target</option>
+                        </select><br>
+                    
+                        <label for="connection" class="fw-semibold">Select File <span class="text-danger">*</span></label><br>
+                        <select class="form-select" [(ngModel)]="selectedFile" (change)="getDataObjectsFromServer()">
+                            <option value="" selected disabled>Select a File</option>
+                            <option class="select-options" *ngFor="let file of Folders; track file;" [value]="file">{{file}}</option>
+                        </select>
+                    </div>
                 </ng-container>
                 <ng-container *ngIf="type === 2 && fileSelectType === 'dataSource'">
-                    <label for="connection">Select connection <span class="text-danger">*</span></label>
-                    <ng-select [items]="connectionOptions" bindLabel="display_name" placeholder="Select a connection"
-                        [searchable]="true" [(ngModel)]="selectedConnection" (change)="getDataObjectsforFile()" name="connection"
-                        id="connection">
-                    </ng-select><br>
+                    <div class="small">
+                        <label for="connection" class="fw-semibold">Select connection <span class="text-danger">*</span></label>
+                        <ng-select [items]="connectionOptions" bindLabel="display_name" placeholder="Select a connection"
+                            [searchable]="true" [(ngModel)]="selectedConnection" (change)="getDataObjectsforFile()" name="connection"
+                            id="connection">
+                        </ng-select><br>
+                    </div>
                 </ng-container>
             </div>
         </div>
     </div>
     <div class="modal-footer">
         <div class="text-right">
-            <button type="button" class="btn ripple btn-secondary me-2"
+            <button type="button" class="btn ripple btn-secondary btn-sm me-2"
                 (click)="modal.close('Cross click'); objectType = 'select'; selectedConnection = null; selectedDataObject = null; fileSelectType = 'dataSource'; sourcePath = ''; selectedFile = ''">Cancel</button>
             <button type="button" [disabled]="
               (type !== 'file' && (!selectedConnection || !selectedDataObject)) ||
@@ -1321,31 +1199,31 @@
                 (fileSelectType === 'dataSource' && !selectedConnection) ||
                 (fileSelectType === 'server' && (!sourcePath || !selectedFile))
               ))" 
-              class="btn ripple btn-primary" (click)="addNode(nodeToAdd, posX, posY); modal.dismiss('Save click'); modal.close('save click');">Ok</button>
+              class="btn ripple btn-primary btn-sm" (click)="addNode(nodeToAdd, posX, posY); modal.dismiss('Save click'); modal.close('save click');">Ok</button>
         </div>
     </div>
 </ng-template>
 
 <ng-template #expressionEdit let-modal>
     <div class="modal-header">
-        <h5 class="modal-title">Expression Editor - {{(isParameter || isSQLParameter) ? etlName : selectedNode?.data?.nodeData?.general?.name}} ({{(isParameter || isSQLParameter) ? 'Data Flow' : selectedNode?.data?.type}}) </h5>
-        <button type="button" class="btn-close text-light" aria-label="Close" (click)="modal.dismiss('Cross click'); isParameter = false; isSQLParameter = false; isJoinerCondition = false; isHaving = false; isWhere = false; isFilter = false;"></button>
+        <h5 class="modal-title small">Expression Editor - {{(isParameter || isSQLParameter) ? etlName : selectedNode?.data?.nodeData?.general?.name}} ({{(isParameter || isSQLParameter) ? 'Data Flow' : selectedNode?.data?.type}}) </h5>
+        <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="modal.dismiss('Cross click'); isParameter = false; isSQLParameter = false; isJoinerCondition = false; isHaving = false; isWhere = false; isFilter = false;"></button>
     </div>
 
-    <div class="modal-body">
+    <div class="modal-body p-0">
 
         <div class="mb-2 d-flex justify-content-between align-items-center">
             @if(isJoinerCondition || isHaving || isFilter || isWhere){
-            <label class="form-label mb-0"><b>*{{selectedField}} (boolean)</b></label>
+            <label class="form-label small mb-0"><b>*{{selectedField}} (boolean)</b></label>
             } @else if(isParameter || isSQLParameter){
-                <label class="form-label mb-0"><b>*{{selectedField?.paramName}} ({{selectedField?.dataType}})</b></label>
+                <label class="form-label small mb-0"><b>*{{selectedField?.paramName}} ({{selectedField?.dataType}})</b></label>
             } @else{
-            <label class="form-label mb-0"><b>*{{selectedField?.attributeName}} ({{selectedField?.dataType}})</b></label>
+            <label class="form-label small mb-0"><b>*{{selectedField?.attributeName}} ({{selectedField?.dataType}})</b></label>
             }
         </div>
 
         <div class="mb-1">
-            <textarea #expressionTextarea class="form-control tab-content-width" rows="8" placeholder="Enter expression..." [(ngModel)]="expression">
+            <textarea #expressionTextarea class="form-control form-control-sm tab-content-width" rows="7" placeholder="Enter expression..." [(ngModel)]="expression">
             </textarea>
         </div>
 
@@ -1356,23 +1234,22 @@
                     <tr>
                         <th class="fw-bold bg-primary text-white col-4">
                             <select class="form-select" [(ngModel)]="expEditorAddType" (change)="onTypeChange()">
-                                <option value="transforms">Transforms</option>
-                                <option value="functions">Functions</option>
+                                <option class="select-options" value="transforms">Transforms</option>
+                                <option class="select-options" value="functions">Functions</option>
                             </select>
                         </th>
                         <th class="fw-bold bg-primary text-white col-4"> {{selectedGroup}} </th>
-                        <th class="fw-bold bg-primary text-white col-4"> {{selectedColumn.attributeName || selectedColumn.label}} </th>
+                        <th class="fw-bold bg-primary text-white col-4"> {{expEditorAddType === 'transforms' ? (selectedColumn.attributeName || selectedColumn.label) : selectedColumn.value}} </th>
                     </tr>
                 </thead>
             </table>
-            <div style="max-height: 235px; overflow: auto;">
+            <!-- <div style="max-height: 235px; overflow: auto;">
                 <table class="table table-bordered w-100 mb-0">
                     <tbody>
                         <tr>
             
-                            <!-- Transforms Column -->
-                            <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4">
-                                <div style="max-height: 200px; overflow-y: auto;">
+                            <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4" style="height: 170px;">
+                                <div class="h-100 overflow-y-auto">
                                     <div *ngFor="let group of groupedColumns | keyvalue" class="text-break py-1 px-2 hover-bg"
                                         style="cursor: pointer;" [class.bg-primary]="selectedGroup === group.key"
                                         [class.text-white]="selectedGroup === group.key" (click)="selectedGroup = group.key">
@@ -1381,8 +1258,8 @@
                                 </div>
                             </td>
             
-                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
-                                <div style="max-height: 200px; overflow-y: auto;">
+                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4" style="height: 170px;">
+                                <div class="h-100 overflow-y-auto">
                                     <div *ngFor="let group of functionGroupType" class="text-break py-1 px-2 hover-bg"
                                         style="cursor: pointer;" [class.bg-primary]="selectedGroup === group.value"
                                         [class.text-white]="selectedGroup === group.value" (click)="selectedGroup = group.value">
@@ -1391,11 +1268,10 @@
                                 </div>
                             </td>
             
-                            <!-- Selected Transform -->
-                            <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4">
+                            <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4" style="height: 170px;">
                                 <input type="text" class="form-control form-control-sm mb-2" placeholder="Search fields..."
                                     [(ngModel)]="expEditorSearchTerm" />
-                                <div style="max-height: 200px; overflow-y: auto;">
+                                <div class="h-100 overflow-y-auto">
                                     <div *ngFor="let column of (groupedColumns[selectedGroup] || []) | dataFlowSearchFilter:expEditorSearchTerm:'label'"
                                         class="text-break py-1 px-2 hover-bg" style="cursor: pointer;"
                                         (click)="selectedColumn = column; insertOrReplace(selectedGroup + '.' + column.label, expressionTextarea);">
@@ -1404,10 +1280,10 @@
                                 </div>
                             </td>
             
-                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
+                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4" style="height: 170px;">
                                 <input type="text" class="form-control form-control-sm mb-2" placeholder="Search"
                                     [(ngModel)]="expEditorSearchTerm" />
-                                <div style="max-height: 200px; overflow-y: auto;">
+                                <div class="h-100 overflow-y-auto">
                                     <div *ngFor="let function of functions[selectedGroup] | dataFlowSearchFilter:expEditorSearchTerm:'key'"
                                         class="text-break py-1 px-2 hover-bg" style="cursor: pointer;"
                                         (click)="selectedColumn = function; insertOrReplace(selectedColumn.value, expressionTextarea);"
@@ -1418,8 +1294,7 @@
                                 </div>
                             </td>
             
-                            <!-- Selected Column -->
-                            <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4">
+                            <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4" style="height: 170px;">
                                 <div *ngIf="selectedColumn">
                                     <div><b>{{selectedColumn.attributeName || selectedColumn.label}}</b></div>
                                     <div>Data type: {{selectedColumn.dataType}}</div>
@@ -1427,8 +1302,8 @@
                                 <div *ngIf="!selectedField" class="text-muted">No column selected</div>
                             </td>
             
-                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
-                                <div *ngIf="selectedColumn" style="max-height: 220px; overflow-y: auto;">
+                            <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4" style="height: 170px;">
+                                <div *ngIf="selectedColumn" class="h-100 overflow-y-auto">
                                     <div><b>{{selectedColumn.value}}</b></div>
                                     <div><strong>Syntax : </strong> {{selectedColumn.syntax}} </div>
                                     <div><strong>Return Type: </strong> {{selectedColumn.returnType}}</div>
@@ -1439,30 +1314,116 @@
                         </tr>
                     </tbody>
                 </table>
-            </div>
+            </div> -->
+        
+            <table class="table table-bordered w-100 mb-0">
+                <tbody>
+                    <tr>
+            
+                        <!-- Transforms Column -->
+                        <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4">
+                            <div class="overflow-y-auto" style="max-height: 145px;">
+                                <div *ngFor="let group of groupedColumns | keyvalue" class="text-break py-1 px-2 hover-bg"
+                                    style="cursor: pointer;" [class.bg-primary]="selectedGroup === group.key"
+                                    [class.text-white]="selectedGroup === group.key" (click)="selectedGroup = group.key">
+                                    {{ group.key }}
+                                </div>
+                            </div>
+                        </td>
+            
+                        <!-- Functions Column -->
+                        <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
+                            <div class="overflow-y-auto" style="max-height: 145px;">
+                                <div *ngFor="let group of functionGroupType" class="text-break py-1 px-2 hover-bg"
+                                    style="cursor: pointer;" [class.bg-primary]="selectedGroup === group.value"
+                                    [class.text-white]="selectedGroup === group.value" (click)="selectedGroup = group.value">
+                                    {{ group.key }}
+                                </div>
+                            </div>
+                        </td>
+            
+                        <!-- Selected Transform -->
+                        <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4">
+                            <div class="d-flex flex-column">
+                                <input type="text" class="form-control form-control-sm mb-2" placeholder="Search fields..."
+                                    [(ngModel)]="expEditorSearchTerm" />
+                                <div class="flex-grow-1 overflow-y-auto" style="max-height: 110px;">
+                                    <div *ngFor="let column of (groupedColumns[selectedGroup] || []) | dataFlowSearchFilter:expEditorSearchTerm:'label'"
+                                        class="text-break py-1 px-2 hover-bg" style="cursor: pointer;"
+                                        (click)="selectedColumn = column; insertOrReplace(selectedGroup + '.' + column.label, expressionTextarea);">
+                                        {{ column.label }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+            
+                        <!-- Selected Functions -->
+                        <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
+                            <div class="d-flex flex-column">
+                                <input type="text" class="form-control form-control-sm mb-2" placeholder="Search"
+                                    [(ngModel)]="expEditorSearchTerm" />
+                                <div class="flex-grow-1 overflow-y-auto" style="max-height: 110px;">
+                                    <div *ngFor="let function of functions[selectedGroup] | dataFlowSearchFilter:expEditorSearchTerm:'key'"
+                                        class="text-break py-1 px-2 hover-bg" style="cursor: pointer;"
+                                        (click)="selectedColumn = function; insertOrReplace(selectedColumn.value, expressionTextarea);"
+                                        [class.bg-primary]="selectedColumn.value === function.value"
+                                        [class.text-white]="selectedColumn.value === function.value">
+                                        {{ function.key }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+            
+                        <!-- Selected Column -->
+                        <td *ngIf="expEditorAddType === 'transforms'" class="align-top col-4">
+                            <div class="overflow-y-auto" style="max-height: 145px;">
+                                <div *ngIf="selectedColumn">
+                                    <div><b>{{selectedColumn.attributeName || selectedColumn.label}}</b></div>
+                                    <div>Data type: {{selectedColumn.dataType}}</div>
+                                </div>
+                                <div *ngIf="!selectedField" class="text-muted">No column selected</div>
+                            </div>
+                        </td>
+            
+                        <td *ngIf="expEditorAddType === 'functions'" class="align-top col-4">
+                            <div class="overflow-y-auto" style="max-height: 145px;">
+                                <div *ngIf="selectedColumn">
+                                    <div><b>{{selectedColumn.value}}</b></div>
+                                    <div><strong>Syntax : </strong> {{selectedColumn.syntax}} </div>
+                                    <div><strong>Return Type: </strong> {{selectedColumn.returnType}}</div>
+                                    <div><strong>Description: </strong> {{selectedColumn.description}}</div>
+                                </div>
+                                <div *ngIf="!selectedField" class="text-muted">No column selected</div>
+                            </div>
+                        </td>
+            
+                    </tr>
+                </tbody>
+            </table>
+
         </div>
 
     </div>
 
     <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="modal.dismiss('cancel'); isParameter = false; isSQLParameter = false; isJoinerCondition = false; isHaving = false; isWhere = false; isFilter = false;">Cancel</button>
-        <button type="button" class="btn btn-primary" (click)="updateExpressionToNode(); modal.dismiss('Save click'); isParameter = false; isSQLParameter = false;">OK</button>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="modal.dismiss('cancel'); isParameter = false; isSQLParameter = false; isJoinerCondition = false; isHaving = false; isWhere = false; isFilter = false;">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="updateExpressionToNode(); modal.dismiss('Save click'); isParameter = false; isSQLParameter = false;">OK</button>
     </div>
 </ng-template>
 
 <ng-template #attributesSelection let-modal>
     <div class="modal-header">
-        <h5 class="modal-title">Select Attributes</h5>
-        <button type="button" class="btn-close" (click)="modal.dismiss('Cross click')"></button>
+        <h5 class="modal-title small">Select Attributes</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss('Cross click')"></button>
     </div>
 
-    <div class="modal-body">
+    <input type="text" [(ngModel)]="attrSelectionSearchTerm" class="form-control small" placeholder="Search..." />
 
-        <input type="text" [(ngModel)]="attrSelectionSearchTerm" class="form-control mb-3" placeholder="Search..." />
+    <div class="modal-body p-2">
 
+        <!-- <input type="text" [(ngModel)]="attrSelectionSearchTerm" class="form-control small mb-3" placeholder="Search..." /> -->
 
-
-        <div *ngFor="let group of groupAttributesList" class="mb-3">
+        <div *ngFor="let group of groupAttributesList" class="mb-3 small">
             <!-- Group Header Checkbox -->
             <div class="form-check mb-2 mt-2">
                 <input class="form-check-input border border-dark" type="checkbox" [(ngModel)]="group.isChecked"
@@ -1484,21 +1445,21 @@
     </div>
 
     <div class="modal-footer bg-light">
-        <button class="btn btn-primary" (click)="applySelectedAttributes(); modal.dismiss('Save click')"> OK </button>
-        <button class="btn btn-secondary" (click)="modal.dismiss('cancel')"> Cancel </button>
+        <button class="btn btn-primary btn-sm" (click)="applySelectedAttributes(); modal.dismiss('Save click')"> OK </button>
+        <button class="btn btn-secondary btn-sm" (click)="modal.dismiss('cancel')"> Cancel </button>
     </div>
 </ng-template>
 
 <ng-template #dataPointList let-modal>
     <div class="modal-header">
-        <h6 class="modal-title">Change Data Point</h6>
-        <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+        <h6 class="modal-title small">Change Data Point</h6>
+        <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="modal.dismiss('Cross click')">
         </button>
     </div>
     <div class="modal-body">
         <div class="panel panel-primary">
-            <div class="tables-modal">
-                    <label for="dataPoint">Select DataPoint <span class="text-danger">*</span></label>
+            <div class="tables-modal small">
+                    <label for="dataPoint" class="fw-semibold">Select DataPoint <span class="text-danger">*</span></label>
                     <ng-select [items]="connectionOptions" bindLabel="display_name" placeholder="Select a connection"
                         [searchable]="true" [(ngModel)]="canvasData.sqlParameters[dataPointIndexForSqlParameter].dataPoint" name="dataPoint" id="dataPoint">
                     </ng-select><br>
@@ -1507,10 +1468,11 @@
     </div>
     <div class="modal-footer">
         <div class="text-right">
-            <button type="button" class="btn ripple btn-secondary me-2"
+            <button type="button" class="btn ripple btn-secondary btn-sm me-2"
                 (click)="modal.close('Cross click');">Cancel</button>
-            <button type="button" [disabled]="!canvasData?.sqlParameters[dataPointIndexForSqlParameter]?.dataPoint" class="btn ripple btn-primary" (click)="updateDataPointToNode(); modal.dismiss('Save click')">Ok</button>
+            <button type="button" [disabled]="!canvasData?.sqlParameters[dataPointIndexForSqlParameter]?.dataPoint" class="btn ripple btn-primary btn-sm" (click)="updateDataPointToNode(); modal.dismiss('Save click')">Ok</button>
         </div>
     </div>
 </ng-template>
+
   

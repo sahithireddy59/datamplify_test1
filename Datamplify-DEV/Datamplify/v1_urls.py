@@ -8,4 +8,6 @@ urlpatterns = [
     path('taskplan/',include('TaskPlan.urls')),
     path('monitor/',include('Monitor.urls')),
     path('scheduler/', include('app.scheduler.api.urls')),
+    # Note: Frontend calls /v1/schedule/schedule but backend is at /v1/scheduler/schedulers/
+    # Update frontend to use correct endpoint or add custom views if needed
 ]

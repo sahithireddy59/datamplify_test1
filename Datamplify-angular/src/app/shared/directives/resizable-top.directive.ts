@@ -6,8 +6,8 @@ import { Directive, ElementRef, HostListener, Renderer2 } from '@angular/core';
 })
 export class ResizableTopDirective {
   private startY = 0;
-  private startHeight = 349; // Initial default
-  private currentHeight = 349;
+  private startHeight = 175; // Initial default
+  private currentHeight = 175;
   private topPaneHeight = 0;
   private topPane!: HTMLElement;
   constructor(private el: ElementRef<HTMLElement>, private renderer: Renderer2) {
@@ -63,7 +63,7 @@ private onMouseMove = (event: MouseEvent): void => {
     const newBottomHeight = this.startHeight - dy;
     const newTopHeight = this.topPaneHeight + dy;
 
-    const minHeight = 75;
+    const minHeight = 48;
 
     if (newBottomHeight >= minHeight && newTopHeight >= minHeight) {
       this.renderer.setStyle(this.el.nativeElement, 'height', `${newBottomHeight}px`);
