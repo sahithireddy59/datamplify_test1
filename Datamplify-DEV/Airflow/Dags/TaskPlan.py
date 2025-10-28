@@ -33,13 +33,21 @@ sys.path.insert(0, "/var/www/Datamplify")
 
 from django_setup import setup_django
 setup_django()
-  # 👈 Ensures Django is ready  # 👈 Ensures Django is ready
+  # Ensures Django is ready  # Ensures Django is ready
 from Datamplify import settings
 from TaskPlan.utils import run_sql_commands 
 from Connections.utils import generate_engine
+from Datamplify.settings import logger
 
+# Import multi-tenant utilities
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from multi_tenant_utils import get_only_configs_filter, log_user_activity
 
+# Multi-tenant configuration
+ONLY_CONFIGS = os.getenv('ONLY_CONFIGS')  # Filter: "user:user-123,user-456"
+ENVIRONMENT = os.getenv('AIRFLOW_ENV', 'production')
 
+logger.info(f'TaskPlan Multi-tenant mode: ONLY_CONFIGS={ONLY_CONFIGS}, ENVIRONMENT={ENVIRONMENT}')
 
 GLOBAL_PARAM_HOLDER = '__global_param_store__'
 
@@ -497,108 +505,54 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
     globals()[dag_id] = dag
     return dag
 
-# def get_configs():
-#     CONFIG_DIR = '/var/www/configs' if settings.DATABASES['default']['NAME'] == 'analytify_qa' else 'configs'
-#     configs = []
-#     for file in os.listdir(CONFIG_DIR):
-#         if file.endswith(".json"):
-#             with open(os.path.join(CONFIG_DIR, file)) as f:
-#                 configs.append(json.load(f))
-#     return configs
-
-# for config in get_configs():
-#     try:
-#         globals()[config['dag_id']] = generate_dynamic_dag(config['dag_id'], config['user_id'], config['username'], config)
-#     except Exception as e:
-#         pass
-#         # print(f"Exception {config['dag_id']}  as {e}")
-#         # print(f"{config['dag_id']} exception: {e}")
-
-
-
 def fetch_and_lock_dag_configs(limit=100):
     CONFIG_DIR = '/opt/airflow/project/Configs/TaskPlan'
     # Ensure the directory exists; if not, create and return no configs to avoid Broken DAG
     if not os.path.isdir(CONFIG_DIR):
         try:
             os.makedirs(CONFIG_DIR, exist_ok=True)
-            print(f"[INFO] Config directory {CONFIG_DIR} not found. Created it. No configs to parse yet.")
+            logger.info(f"Config directory {CONFIG_DIR} not found. Created it. No configs to parse yet.")
         except Exception as e:
-            print(f"[WARN] Could not create {CONFIG_DIR}: {e}")
+            logger.warning(f"Could not create {CONFIG_DIR}: {e}")
         return []
-    # try:
-    #     with connection.cursor() as cursor:
-    #         cursor.execute("""
-    #             WITH to_parse AS (
-    #                 SELECT "Flow_id", "user_id"
-    #                 FROM "FlowBoard"
-    #                 WHERE "parsed" IS NULL OR "updated_at" > "parsed"
-    #                 ORDER BY "updated_at" ASC
-    #                 LIMIT %s
-    #                 FOR UPDATE SKIP LOCKED
-    #             )
-    #             UPDATE "FlowBoard"
-    #             SET "parsed" = NOW()
-    #             FROM to_parse
-    #             WHERE "FlowBoard"."Flow_id" = to_parse."Flow_id"
-    #             RETURNING "FlowBoard"."Flow_id" AS flow_id, "FlowBoard"."user_id" AS user_id;
-    #         """, [limit])
-            
-    #         rows = cursor.fetchall()
-    #         print('[DEBUG] Locked rows:', rows)
+    
+    # Use multi-tenant filtering if ONLY_CONFIGS is set
+    if ONLY_CONFIGS:
+        logger.info(f"TaskPlan: Filtering with ONLY_CONFIGS={ONLY_CONFIGS}")
+        count = 0
+        for flow_id, user_id, config in get_only_configs_filter(CONFIG_DIR, ONLY_CONFIGS):
+            yield flow_id, config
+            count += 1
+            if limit and count >= limit:
+                return
+        return
 
-    #         if not rows:
-    #             return
-
-    #         for flow_id, user_id in rows:
-    #             full_path = os.path.join(base_dir, f'{user_id}/{flow_id}.json')
-    #             try:
-    #                 with open(full_path) as f:
-    #                     config_json = json.load(f)
-    #                     yield flow_id, config_json
-    #             except Exception as e:
-    #                 print(f"[ERROR] Failed to parse {full_path}: {e}")
-
-    # except Exception as e:
-    #     print(f"[ERROR] Database error: {e}")
-    for user_id in os.listdir(CONFIG_DIR):
-        user_dir = os.path.join(CONFIG_DIR, user_id)
-        if not os.path.isdir(user_dir):
-            continue
-        for filename in os.listdir(user_dir):
-            if filename.endswith('.json'):
-                flow_id = filename[:-5]
-                filepath = os.path.join(user_dir, filename)
-                try:
-                    with open(filepath) as f:
-                        config = json.load(f)
-                        yield flow_id, config
-                except Exception as e:
-                    print(f"[ERROR] Failed to load {filepath}: {e}")
-
-
-
-# def get_configs():
-#     # CONFIG_DIR = '/var/www/configs' if settings.DATABASES['default']['NAME'] == 'analytify_qa' else 'configs'
-#     configs = []
-
-#     for file in os.listdir(CONFIG_DIR):
-#         if file.endswith(".json"):
-#             with open(os.path.join(CONFIG_DIR, file)) as f:
-#                 configs.append(json.load(f))
-#     return configs
+logger.info("TaskPlan: Starting DAG registration")
 dag_configs = list(fetch_and_lock_dag_configs() or [])
 
 if not dag_configs:
-    print("[INFO] No new DAG configs found to parse.")
+    logger.info("TaskPlan: No DAG configs found to parse")
 else:
+    logger.info(f"TaskPlan: Registering {len(dag_configs)} DAGs")
     for dag_id, config in dag_configs:
         try:
+            user_id = uuid.UUID(config['user_id'])
+            logger.info(f"TaskPlan: Attempting DAG generation for {dag_id} (user: {user_id})")
+            
+            # Log user activity
+            log_user_activity(str(user_id), 'dag_registration', {
+                'dag_id': dag_id,
+                'task_name': config.get('task_name', 'Unknown')
+            })
+            
             globals()[dag_id] = generate_dynamic_dag(
                 dag_id=dag_id,
-                user_id=uuid.UUID(config['user_id']),
-                user_name=config['username'],
+                user_id=user_id,
+                user_name=config.get('username', 'unknown'),
                 config=config
             )
+            logger.info(f"TaskPlan: Successfully registered DAG {dag_id}")
         except Exception as e:
-            print(f"[ERROR] DAG creation failed for {dag_id}: {e}")
+            logger.error(f"TaskPlan: DAG creation failed for {dag_id}: {e}")
+
+logger.info(f"TaskPlan: DAG registration complete. Total DAGs: {len(dag_configs)}")
