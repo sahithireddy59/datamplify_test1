@@ -38,8 +38,18 @@ from Connections.utils import generate_engine
 from Monitor.models import RunHistory
 from Datamplify.settings import logger
 
+# Import multi-tenant utilities
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from multi_tenant_utils import get_user_configs, get_only_configs_filter, log_user_activity
+
 
 GLOBAL_PARAM_HOLDER = '__global_param_store__'
+
+# Multi-tenant configuration
+ONLY_CONFIGS = os.getenv('ONLY_CONFIGS')  # Filter: "user:user-123,user-456" or "flow-1,flow-2"
+ENVIRONMENT = os.getenv('AIRFLOW_ENV', 'production')  # Environment filter
+
+logger.info(f'FlowBoard Multi-tenant mode: ONLY_CONFIGS={ONLY_CONFIGS}, ENVIRONMENT={ENVIRONMENT}')
 
 
 
@@ -701,6 +711,17 @@ def generate_dynamic_dag(dag_id, user_id, user_name, config, **kwargs):
 
 def fetch_and_lock_dag_configs(limit=100):
     CONFIG_DIR = '/var/www/Configs/FlowBoard'
+    
+    # Use multi-tenant filtering if ONLY_CONFIGS is set
+    if ONLY_CONFIGS:
+        logger.info(f"FlowBoard: Filtering with ONLY_CONFIGS={ONLY_CONFIGS}")
+        count = 0
+        for flow_id, user_id, config in get_only_configs_filter(CONFIG_DIR, ONLY_CONFIGS):
+            yield flow_id, config
+            count += 1
+            if limit and count >= limit:
+                return
+        return
     # try:
     #     with connection.cursor() as cursor:
     #         cursor.execute("""
@@ -762,34 +783,43 @@ def fetch_and_lock_dag_configs(limit=100):
 #             with open(os.path.join(CONFIG_DIR, file)) as f:
 #                 configs.append(json.load(f))
 #     return configs
+# Multi-tenant DAG registration
+logger.info("FlowBoard: Starting DAG registration")
 dag_configs = list(fetch_and_lock_dag_configs() or [])
 
 if not dag_configs:
-    # print("[INFO] No new DAG configs found to parse.")
-    pass
+    logger.info("FlowBoard: No DAG configs found to parse")
 else:
-        
+    logger.info(f"FlowBoard: Registering {len(dag_configs)} DAGs")
     for dag_id, config in dag_configs:
         try:
-            print(f"[INFO] Attempting DAG generation for {dag_id}")
+            user_id = uuid.UUID(config['user_id'])
+            logger.info(f"FlowBoard: Attempting DAG generation for {dag_id} (user: {user_id})")
+            
+            # Log user activity
+            log_user_activity(str(user_id), 'dag_registration', {
+                'dag_id': dag_id,
+                'flow_name': config.get('flow_name', 'Unknown')
+            })
+            
             dag = generate_dynamic_dag(
                 dag_id=str(dag_id),
-                user_id=uuid.UUID(config['user_id']),
-                user_name=config['username'],
+                user_id=user_id,
+                user_name=config.get('username', 'unknown'),
                 config=config
             )
 
             if not isinstance(dag, DAG):
-                logger.error(f" {dag_id}: Not a DAG instance: {type(dag)}")
+                logger.error(f"FlowBoard: {dag_id}: Not a DAG instance: {type(dag)}")
                 continue
             if not dag.dag_id:
-                logger.error(f" {dag_id}: dag_id is None")
+                logger.error(f"FlowBoard: {dag_id}: dag_id is None")
                 continue
 
-            # Optional debug dump
-
             globals()[dag_id] = dag
+            logger.info(f"FlowBoard: Successfully registered DAG {dag_id}")
         except Exception as e:
-            logger.error(f" DAG creation failed for {dag_id}: {e}")
+            logger.error(f"FlowBoard: DAG creation failed for {dag_id}: {e}")
             continue
-            # traceback.print_exc()
+
+logger.info(f"FlowBoard: DAG registration complete. Total DAGs: {len(dag_configs)}")
